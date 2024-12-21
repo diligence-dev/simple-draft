@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Draft Manager</title>
+</head>
+<body>
+    <h1>MTG Draft Manager</h1>
+    <h2>Players</h2>
+    <ul id="players">
+        {% for player in players %}
+            <li>{{ player }}</li>
+        {% endfor %}
+    </ul>
+    <form action="/add_player" method="POST">
+        <input type="text" name="name" placeholder="Player Name" required>
+        <button type="submit">Add Player</button>
+    </form>
+
+    <h2>Seating</h2>
+    <ul id="seating">
+        {% for seat in seating %}
+            <li>{{ seat }}</li>
+        {% endfor %}
+    </ul>
+    <form action="/start_draft" method="POST">
+        <button type="submit">Start Draft</button>
+    </form>
+
+    <h2>Round {{ round_number }}</h2>
+    <ul id="pairings">
+        {% for p1, p2 in pairings %}
+            <li>{{ p1 }} vs {{ p2 }}</li>
+        {% endfor %}
+    </ul>
+    <form action="/start_round" method="POST">
+        <button type="submit">Start Next Round</button>
+    </form>
+
+    <h2>Submit Results</h2>
+    <form action="/submit_result" method="POST">
+        <input type="text" name="match" placeholder="Match (e.g., Player1 vs Player2)" required>
+        <input type="number" name="p1_score" placeholder="Player1 Score" required>
+        <input type="number" name="p2_score" placeholder="Player2 Score" required>
+        <button type="submit">Submit Result</button>
+    </form>
+
+    <h2>Standings</h2>
+    <ul id="standings">
+        {% for standing in standings %}
+            <li>
+                {{ standing.name }} - {{ standing.points }} points
+                (Games Won: {{ standing.games_won }}, Games Played: {{ standing.games_played }},
+                OMW: {{ standing.omw|round(2) }})
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
