@@ -58,8 +58,7 @@ def generate_pairings():
 
     # Add current pairings to pairing history
     for match in pairings:
-        if "bye" not in match:
-            pairing_history.add(frozenset(match))
+        pairing_history.add(frozenset(match))
 
 
 def update_standings():
@@ -144,12 +143,15 @@ def start_round():
 
 @app.route("/submit_result", methods=["POST"])
 def submit_result():
-    match = request.form.get("match")
-    p1_score = int(request.form.get("p1_score"))
-    p2_score = int(request.form.get("p2_score"))
-    if match and p1_score >= 0 and p2_score >= 0:
-        results[match] = (p1_score, p2_score)
-        update_standings()
+    for i in range(len(pairings)):
+        p1_score = request.form.get(f"p1_score_{i}")
+        p2_score = request.form.get(f"p2_score_{i}")
+        if p1_score is not None and p2_score is not None:
+            p1_score = int(p1_score)
+            p2_score = int(p2_score)
+            match = f"{pairings[i][0]} vs {pairings[i][1]}"
+            results[match] = (p1_score, p2_score)
+    update_standings()
     return redirect(url_for("index"))
 
 

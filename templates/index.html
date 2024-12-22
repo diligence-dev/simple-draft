@@ -72,12 +72,19 @@
             {% endfor %}
         </ul>
 
-        <h2>Pairings</h2>
-        <ul>
-            {% for p1, p2 in pairings %}
-                <li>{{ p1 }} vs {{ p2 }}</li>
-            {% endfor %}
-        </ul>
+        <h2>Pairings and Submit Results</h2>
+        <form method="POST" action="/submit_result" class="form-group">
+            <ul>
+                {% for p1, p2 in pairings %}
+                    {% if p2 == 'bye' %}
+                        <li>{{ p1 }} <input type="number" name="p1_score_{{ loop.index }}" value="2" readonly style="width: 80px;"> vs <input type="number" name="p2_score_{{ loop.index }}" value="0" readonly style="width: 80px;"> {{ p2 }}</li>
+                    {% else %}
+                        <li>{{ p1 }} <input type="number" name="p1_score_{{ loop.index }}" id="p1_score_{{ loop.index }}" min="0" max="2" style="width: 80px;" required> vs <input type="number" name="p2_score_{{ loop.index }}" id="p2_score_{{ loop.index }}" min="0" max="2" style="width: 80px;" required> {{ p2 }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+            <button type="submit">Submit Results</button>
+        </form>
 
         <h2>Standings</h2>
         <table>
@@ -118,21 +125,6 @@
         </form>
         <form method="POST" action="/start_round" class="form-group">
             <button type="submit">Start Round</button>
-        </form>
-
-        <h2>Submit Results</h2>
-        <form method="POST" action="/submit_result" class="form-group">
-            <label for="match">Match:</label>
-            <select name="match" id="match" required>
-                {% for p1, p2 in pairings_not_submitted %}
-                    <option value="{{ p1 }} vs {{ p2 }}">{{ p1 }} vs {{ p2 }}</option>
-                {% endfor %}
-            </select>
-            <label for="p1_score">Player 1 Score:</label>
-            <input type="number" name="p1_score" id="p1_score" min="0" required>
-            <label for="p2_score">Player 2 Score:</label>
-            <input type="number" name="p2_score" id="p2_score" min="0" required>
-            <button type="submit">Submit Result</button>
         </form>
     </div>
 </body>
