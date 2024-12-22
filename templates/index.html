@@ -62,15 +62,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>MTG Draft Event</h1>
+        <h1>Simple Draft</h1>
         <h3>Round: {{ round_number }}</h3>
-
-        <h2>Draft Seating</h2>
-        <ul>
-            {% for player in seating %}
-                <li>{{ player }}</li>
-            {% endfor %}
-        </ul>
 
         <h2>Pairings and Submit Results</h2>
         <form method="POST" action="/submit_result" class="form-group">
@@ -79,7 +72,7 @@
                     {% if p2 == 'bye' %}
                         <li>{{ p1 }} <input type="number" name="p1_score_{{ loop.index }}" value="2" readonly style="width: 80px;"> vs <input type="number" name="p2_score_{{ loop.index }}" value="0" readonly style="width: 80px;"> {{ p2 }}</li>
                     {% else %}
-                        <li>{{ p1 }} <input type="number" name="p1_score_{{ loop.index }}" id="p1_score_{{ loop.index }}" min="0" max="2" style="width: 80px;" required> vs <input type="number" name="p2_score_{{ loop.index }}" id="p2_score_{{ loop.index }}" min="0" max="2" style="width: 80px;" required> {{ p2 }}</li>
+                        <li>{{ p1 }} <input type="number" name="p1_score_{{ loop.index }}" id="p1_score_{{ loop.index }}" value="0" min="0" max="2" style="width: 80px;" required> vs <input type="number" name="p2_score_{{ loop.index }}" id="p2_score_{{ loop.index }}" value="2" min="0" max="2" style="width: 80px;" required> {{ p2 }}</li>
                     {% endif %}
                 {% endfor %}
             </ul>
@@ -99,17 +92,15 @@
                 </tr>
             </thead>
             <tbody>
-                {% set counter = 1 %}
                 {% for player in standings %}
                     <tr>
-                        <td>{{ counter }}</td>
+                        <td>{{ loop.index }}</td>
                         <td>{{ player.name }}</td>
                         <td>{{ player.points }}</td>
                         <td>{{ "%.2f"|format(player.omw) }}</td>
                         <td>{{ player.games_won }}</td>
                         <td>{{ player.games_played }}</td>
                     </tr>
-                    {% set counter = counter + 1 %}
                 {% endfor %}
             </tbody>
         </table>
@@ -121,11 +112,15 @@
             <button type="submit">Add</button>
         </form>
         <form method="POST" action="/start_draft" class="form-group">
-            <button type="submit">Start Draft</button>
+            <button type="submit">Start</button>
         </form>
-        <form method="POST" action="/start_round" class="form-group">
-            <button type="submit">Start Round</button>
-        </form>
+
+        <h2>Draft Seating</h2>
+        <ul>
+            {% for player in seating %}
+                <li>{{ player }}</li>
+            {% endfor %}
+        </ul>
     </div>
 </body>
 </html>

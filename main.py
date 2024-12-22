@@ -36,8 +36,7 @@ def generate_pairings():
             pairings.append((seating[-1], "bye"))
     else:
         # Swiss pairings for subsequent rounds
-        sorted_players = sorted(standings, key=lambda x: (-x["points"], -x["omw"]))
-        unpaired = sorted_players.copy()
+        unpaired = standings.copy()
 
         while len(unpaired) > 1:
             player1 = unpaired.pop(0)
@@ -64,24 +63,31 @@ def generate_pairings():
 def update_standings():
     global standings
     # Initialize/reset standings
-    standings = [
-        {"name": player, "points": 0, "omw": 0.0, "games_won": 0, "games_played": 0}
-        for player in players
-    ]
+    if not standings:
+        standings = [
+            {"name": player, "points": 0, "omw": 0.0, "games_won": 0, "games_played": 0}
+            for player in players
+        ]
 
     # Update points and tiebreakers
     for match, result in results.items():
         p1, p2 = match.split(" vs ")
-        p1_points, p2_points = result
+        p1_games_won, p2_games_won = result
         for p in standings:
             if p["name"] == p1:
-                p["points"] += p1_points
-                p["games_won"] += p1_points
-                p["games_played"] += sum(result)
+                if p1_games_won > p2_games_won:
+                    p["points"] += 3  # Win
+                elif p1_games_won == p2_games_won:
+                    p["points"] += 1  # Draw
+                p["games_won"] += p1_games_won
+                p["games_played"] += p1_games_won + p2_games_won
             elif p["name"] == p2:
-                p["points"] += p2_points
-                p["games_won"] += p2_points
-                p["games_played"] += sum(result)
+                if p2_games_won > p1_games_won:
+                    p["points"] += 3  # Win
+                elif p2_games_won == p1_games_won:
+                    p["points"] += 1  # Draw
+                p["games_won"] += p2_games_won
+                p["games_played"] += p1_games_won + p2_games_won
 
     # Calculate opponent match win % (OMW)
     for p in standings:
@@ -97,6 +103,9 @@ def update_standings():
             if opponent_points
             else 0.0
         )
+
+    # Sort standings by points and OMW
+    standings.sort(key=lambda x: (-x["points"], -x["omw"]))
 
 
 # Routes
@@ -152,6 +161,7 @@ def submit_result():
             match = f"{pairings[i][0]} vs {pairings[i][1]}"
             results[match] = (p1_score, p2_score)
     update_standings()
+    generate_pairings()  # Automatically start a new round with new Swiss pairings
     return redirect(url_for("index"))
 
 
