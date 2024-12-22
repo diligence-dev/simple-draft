@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template, redirect, url_for
 import random
 import socket
 
@@ -13,10 +13,12 @@ standings = []  # Standings by points and tiebreakers
 round_number = 0  # Current round
 pairing_history = set()  # Track all previous pairings
 
+
 # Helper functions
 def generate_seating():
     global seating
     seating = random.sample(players, len(players))
+
 
 def generate_pairings():
     global pairings, round_number, pairing_history
@@ -31,99 +33,134 @@ def generate_pairings():
 
         # Assign a bye if there is an odd number of players
         if len(seating) % 2 == 1:
-            pairings.append((seating[-1], 'bye'))
+            pairings.append((seating[-1], "bye"))
     else:
         # Swiss pairings for subsequent rounds
-        sorted_players = sorted(standings, key=lambda x: (-x['points'], -x['omw']))
+        sorted_players = sorted(standings, key=lambda x: (-x["points"], -x["omw"]))
         unpaired = sorted_players.copy()
 
         while len(unpaired) > 1:
             player1 = unpaired.pop(0)
             # Find the first opponent that hasn't been played yet
             for i, opponent in enumerate(unpaired):
-                if frozenset({player1['name'], opponent['name']}) not in pairing_history:
-                    pairings.append((player1['name'], opponent['name']))
+                if (
+                    frozenset({player1["name"], opponent["name"]})
+                    not in pairing_history
+                ):
+                    pairings.append((player1["name"], opponent["name"]))
                     unpaired.pop(i)
-                    pairing_history.add(frozenset({player1['name'], opponent['name']}))
+                    pairing_history.add(frozenset({player1["name"], opponent["name"]}))
                     break
 
         # Assign a bye if there is an odd number of players
         if unpaired:
-            pairings.append((unpaired[0]['name'], 'bye'))
+            pairings.append((unpaired[0]["name"], "bye"))
 
     # Add current pairings to pairing history
     for match in pairings:
-        if 'bye' not in match:
+        if "bye" not in match:
             pairing_history.add(frozenset(match))
+
 
 def update_standings():
     global standings
     # Initialize/reset standings
-    standings = [{'name': player, 'points': 0, 'omw': 0.0, 'games_won': 0, 'games_played': 0} for player in players]
+    standings = [
+        {"name": player, "points": 0, "omw": 0.0, "games_won": 0, "games_played": 0}
+        for player in players
+    ]
 
     # Update points and tiebreakers
     for match, result in results.items():
-        p1, p2 = match.split(' vs ')
+        p1, p2 = match.split(" vs ")
         p1_points, p2_points = result
         for p in standings:
-            if p['name'] == p1:
-                p['points'] += p1_points
-                p['games_won'] += p1_points
-                p['games_played'] += sum(result)
-            elif p['name'] == p2:
-                p['points'] += p2_points
-                p['games_won'] += p2_points
-                p['games_played'] += sum(result)
+            if p["name"] == p1:
+                p["points"] += p1_points
+                p["games_won"] += p1_points
+                p["games_played"] += sum(result)
+            elif p["name"] == p2:
+                p["points"] += p2_points
+                p["games_won"] += p2_points
+                p["games_played"] += sum(result)
 
     # Calculate opponent match win % (OMW)
     for p in standings:
-        opponents = [op for match in results for op in match.split(' vs ') if p['name'] in match and op != p['name']]
-        opponent_points = [o['points'] for o in standings if o['name'] in opponents]
-        p['omw'] = sum(opponent_points) / (len(opponent_points) * 3) if opponent_points else 0.0
+        opponents = [
+            op
+            for match in results
+            for op in match.split(" vs ")
+            if p["name"] in match and op != p["name"]
+        ]
+        opponent_points = [o["points"] for o in standings if o["name"] in opponents]
+        p["omw"] = (
+            sum(opponent_points) / (len(opponent_points) * 3)
+            if opponent_points
+            else 0.0
+        )
+
 
 # Routes
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html', players=players, seating=seating, pairings=pairings, standings=standings, round_number=round_number)
+    # Filter out matches that already have results from the dropdown menu
+    pairings_not_submitted = [
+        (p1, p2)
+        for p1, p2 in pairings
+        if f"{p1} vs {p2}" not in results and f"{p2} vs {p1}" not in results
+    ]
+    return render_template(
+        "index.html",
+        players=players,
+        seating=seating,
+        pairings=pairings,
+        pairings_not_submitted=pairings_not_submitted,
+        standings=standings,
+        round_number=round_number,
+    )
 
-@app.route('/add_player', methods=['POST'])
+
+@app.route("/add_player", methods=["POST"])
 def add_player():
-    name = request.form.get('name')
+    name = request.form.get("name")
     if name and name not in players:
         players.append(name)
-        return jsonify({'success': True, 'message': f'Player {name} added.'})
-    return jsonify({'success': False, 'message': 'Player name missing or already added.'})
+    return redirect(url_for("index"))
 
-@app.route('/start_draft', methods=['POST'])
+
+@app.route("/start_draft", methods=["POST"])
 def start_draft():
-    if len(players) < 2:
-        return jsonify({'success': False, 'message': 'At least 2 players are required to start the draft.'})
-    generate_seating()
-    return jsonify({'success': True, 'seating': seating})
+    if len(players) >= 2:
+        generate_seating()
+    return redirect(url_for("index"))
 
-@app.route('/start_round', methods=['POST'])
+
+@app.route("/start_round", methods=["POST"])
 def start_round():
-    if not seating:
-        return jsonify({'success': False, 'message': 'Draft not started yet.'})
-    generate_pairings()
-    return jsonify({'success': True, 'pairings': pairings})
+    if seating:
+        generate_pairings()
+    return redirect(url_for("index"))
 
-@app.route('/submit_result', methods=['POST'])
+
+@app.route("/submit_result", methods=["POST"])
 def submit_result():
-    match = request.form.get('match')
-    p1_score = int(request.form.get('p1_score'))
-    p2_score = int(request.form.get('p2_score'))
+    match = request.form.get("match")
+    p1_score = int(request.form.get("p1_score"))
+    p2_score = int(request.form.get("p2_score"))
     if match and p1_score >= 0 and p2_score >= 0:
         results[match] = (p1_score, p2_score)
         update_standings()
-        return jsonify({'success': True, 'message': 'Result submitted successfully.'})
-    return jsonify({'success': False, 'message': 'Invalid input.'})
+    return redirect(url_for("index"))
 
-@app.route('/standings', methods=['GET'])
-def get_standings():
-    return jsonify({'success': True, 'standings': standings})
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    # Prepopulate players
+    players = ["a", "b", "c", "d", "e", "f", "g", "h", "i"]
+
+    # Generate initial seating and pairings
+    generate_seating()
+    generate_pairings()
+
     # Find local IP address
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)

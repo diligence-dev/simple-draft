@@ -3,58 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTG Draft Manager</title>
+    <title>MTG Draft</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
-    <h1>MTG Draft Manager</h1>
-    <h2>Players</h2>
-    <ul id="players">
-        {% for player in players %}
-            <li>{{ player }}</li>
-        {% endfor %}
-    </ul>
-    <form action="/add_player" method="POST">
-        <input type="text" name="name" placeholder="Player Name" required>
-        <button type="submit">Add Player</button>
-    </form>
+    <div class="container">
+        <h1>MTG Draft Event</h1>
+        <h3>Round: {{ round_number }}</h3>
 
-    <h2>Seating</h2>
-    <ul id="seating">
-        {% for seat in seating %}
-            <li>{{ seat }}</li>
-        {% endfor %}
-    </ul>
-    <form action="/start_draft" method="POST">
-        <button type="submit">Start Draft</button>
-    </form>
+        <h2>Draft Seating</h2>
+        <ul>
+            {% for player in seating %}
+                <li>{{ player }}</li>
+            {% endfor %}
+        </ul>
 
-    <h2>Round {{ round_number }}</h2>
-    <ul id="pairings">
-        {% for p1, p2 in pairings %}
-            <li>{{ p1 }} vs {{ p2 }}</li>
-        {% endfor %}
-    </ul>
-    <form action="/start_round" method="POST">
-        <button type="submit">Start Next Round</button>
-    </form>
+        <h2>Pairings</h2>
+        <ul>
+            {% for p1, p2 in pairings %}
+                <li>{{ p1 }} vs {{ p2 }}</li>
+            {% endfor %}
+        </ul>
 
-    <h2>Submit Results</h2>
-    <form action="/submit_result" method="POST">
-        <input type="text" name="match" placeholder="Match (e.g., Player1 vs Player2)" required>
-        <input type="number" name="p1_score" placeholder="Player1 Score" required>
-        <input type="number" name="p2_score" placeholder="Player2 Score" required>
-        <button type="submit">Submit Result</button>
-    </form>
+        <h2>Standings</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Points</th>
+                    <th>OMW</th>
+                    <th>Games Won</th>
+                    <th>Games Played</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set counter = 1 %}
+                {% for player in standings %}
+                    <tr>
+                        <td>{{ counter }}</td>
+                        <td>{{ player.name }}</td>
+                        <td>{{ player.points }}</td>
+                        <td>{{ "%.2f"|format(player.omw) }}</td>
+                        <td>{{ player.games_won }}</td>
+                        <td>{{ player.games_played }}</td>
+                    </tr>
+                    {% set counter = counter + 1 %}
+                {% endfor %}
+            </tbody>
+        </table>
 
-    <h2>Standings</h2>
-    <ul id="standings">
-        {% for standing in standings %}
-            <li>
-                {{ standing.name }} - {{ standing.points }} points
-                (Games Won: {{ standing.games_won }}, Games Played: {{ standing.games_played }},
-                OMW: {{ standing.omw|round(2) }})
-            </li>
-        {% endfor %}
-    </ul>
+        <h2>Actions</h2>
+        <form method="POST" action="/add_player" class="form-group">
+            <label for="name">Add Player:</label>
+            <input type="text" name="name" id="name" required>
+            <button type="submit">Add</button>
+        </form>
+        <form method="POST" action="/start_draft" class="form-group">
+            <button type="submit">Start Draft</button>
+        </form>
+        <form method="POST" action="/start_round" class="form-group">
+            <button type="submit">Start Round</button>
+        </form>
+
+        <h2>Submit Results</h2>
+        <form method="POST" action="/submit_result" class="form-group">
+            <label for="match">Match:</label>
+            <select name="match" id="match" required>
+                {% for p1, p2 in pairings_not_submitted %}
+                    <option value="{{ p1 }} vs {{ p2 }}">{{ p1 }} vs {{ p2 }}</option>
+                {% endfor %}
+            </select>
+            <label for="p1_score">Player 1 Score:</label>
+            <input type="number" name="p1_score" id="p1_score" min="0" required>
+            <label for="p2_score">Player 2 Score:</label>
+            <input type="number" name="p2_score" id="p2_score" min="0" required>
+            <button type="submit">Submit Result</button>
+        </form>
+    </div>
 </body>
 </html>
