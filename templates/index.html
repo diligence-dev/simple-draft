@@ -70,9 +70,9 @@
             <ul>
                 {% for p1, p2 in pairings %}
                     {% if p2 == 'bye' %}
-                        <li>{{ p1 }} <input type="number" name="p1_score_{{ loop.index }}" value="2" readonly style="width: 80px;"> vs <input type="number" name="p2_score_{{ loop.index }}" value="0" readonly style="width: 80px;"> {{ p2 }}</li>
+                        <li>{{ p1 }} <input type="number" name="p1_games_won_{{ loop.index }}" value="2" readonly style="width: 80px;"> vs <input type="number" name="p2_games_won_{{ loop.index }}" value="0" readonly style="width: 80px;"> {{ p2 }}</li>
                     {% else %}
-                        <li>{{ p1 }} <input type="number" name="p1_score_{{ loop.index }}" id="p1_score_{{ loop.index }}" value="0" min="0" max="2" style="width: 80px;" required> vs <input type="number" name="p2_score_{{ loop.index }}" id="p2_score_{{ loop.index }}" value="2" min="0" max="2" style="width: 80px;" required> {{ p2 }}</li>
+                        <li>{{ p1 }} <input type="number" name="p1_games_won_{{ loop.index }}" id="p1_games_won_{{ loop.index }}" value="0" min="0" max="2" style="width: 80px;" required> vs <input type="number" name="p2_games_won_{{ loop.index }}" id="p2_games_won_{{ loop.index }}" value="2" min="0" max="2" style="width: 80px;" required> {{ p2 }}</li>
                     {% endif %}
                 {% endfor %}
             </ul>
@@ -112,7 +112,7 @@
             <button type="submit">Add</button>
         </form>
         <form method="POST" action="/start_draft" class="form-group">
-            <button type="submit">Start</button>
+            <button type="submit">Start Draft</button>
         </form>
 
         <h2>Draft Seating</h2>

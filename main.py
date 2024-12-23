@@ -2,188 +2,154 @@ from flask import Flask, request, render_template, redirect, url_for
 import random
 import socket
 from collections import OrderedDict
+from statistics import mean
 
 app = Flask(__name__)
 
-# Store event data in memory
-players = []  # List of player names
-x = []  # List of round results, where each round result is a dict of pairs (p1, p2) as keys and (p1_game_wins, p2_game_wins) as values
+def make_round_result(players):
+    if len(players) % 2 == 1:
+        players.append("bye")
+    round_results = OrderedDict(((players[i], players[i + 1]), (-1, -1)) for i in range(0, len(players), 2))
+    if list(round_results.keys())[-1][1] == "bye":
+        round_results[list(round_results.keys())[-1]] = (2, 0)
+    return round_results
 
-# Helper functions
-def generate_seating():
-    global players
-    players = random.sample(players, len(players))
+# List of round results, where each round result is an OrderedDict of pairs (p1, p2) as keys and (p1_game_wins, p2_game_wins) as values
+x = [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h", "i"])]
 
-def calculate_pairings():
-    if not x:
-        return []
+
+def get_players():
+    return([p for p, o in x[0].keys() if o != "bye"] + [p if p != "bye" else o for o, p in x[0].keys()])
+
+
+def shuffle_seating():
+    global x
+    assert len(x) == 1
+    x[0] = make_round_result(random.sample(get_players(), len(get_players())))
+
+
+def get_pairing():
     return list(x[-1].keys())
 
-def calculate_results():
-    results = {}
-    for round_result in x:
-        results.update(round_result)
-    return results
-
 def calculate_standings():
-    standings = [
-        {"name": player, "points": 0, "omw": 0.0, "games_won": 0, "games_played": 0}
-        for player in players
-    ]
-    results = calculate_results()
-    for match, result in results.items():
-        p1, p2 = match.split(" vs ")
-        p1_games_won, p2_games_won = result
-        for p in standings:
-            if p["name"] == p1:
-                if p1_games_won > p2_games_won:
-                    p["points"] += 3  # Win
-                elif p1_games_won == p2_games_won:
-                    p["points"] += 1  # Draw
-                p["games_won"] += p1_games_won
-                p["games_played"] += p1_games_won + p2_games_won
-            elif p["name"] == p2:
-                if p2_games_won > p1_games_won:
-                    p["points"] += 3  # Win
-                elif p2_games_won == p1_games_won:
-                    p["points"] += 1  # Draw
-                p["games_won"] += p2_games_won
-                p["games_played"] += p1_games_won + p2_games_won
+    standings = {player: {"points": 0, "games_won": 0, "games_played": 0, "matches_played": 0}
+                 for player in get_players() + ["bye"]}
 
-    # Calculate opponent match win % (OMW)
-    for p in standings:
+    for round_results in x:
+        for (p1, p2), (p1_games_won, p2_games_won) in round_results.items():
+            if p1_games_won not in [0, 1, 2] or p2_games_won not in [0, 1, 2]:
+                continue
+            if p1_games_won > p2_games_won:
+                standings[p1]["points"] += 3
+            elif p1_games_won == p2_games_won:
+                standings[p1]["points"] += 1
+                standings[p2]["points"] += 1
+            else:
+                standings[p2]["points"] += 3
+            standings[p1]["games_won"] += p1_games_won
+            standings[p2]["games_won"] += p2_games_won
+            standings[p1]["games_played"] += p1_games_won + p2_games_won
+            standings[p2]["games_played"] += p1_games_won + p2_games_won
+            standings[p1]["matches_played"] += 1
+            standings[p2]["matches_played"] += 1
+
+    del standings["bye"]
+
+    # Calculate player match winrate
+    for player in get_players():
+        p = standings[player]
+        if p["matches_played"] == 0:
+            standings[player]["match_winrate"] = 1.0
+        else:
+            standings[player]["match_winrate"] = max(0.33, p["points"] / (3 * p["matches_played"]))
+
+    # Calculate opponent match winrate (OMW)
+    for player in get_players():
         opponents = [
-            op
-            for match in results
-            for op in match.split(" vs ")
-            if p["name"] in match and op != p["name"]
+            match[0] if match[1] == player else match[1]
+            for round_results in x
+            for match in round_results.keys()
+            if player in match and "bye" not in match
         ]
-        opponent_points = [o["points"] for o in standings if o["name"] in opponents]
-        p["omw"] = (
-            sum(opponent_points) / (len(opponent_points) * 3)
-            if opponent_points
-            else 0.0
-        )
+        if not opponents:
+            standings[player]["omw"] = 1.0
+        else:
+            standings[player]["omw"] = mean(standings[opponent]["match_winrate"] for opponent in opponents)
 
     # Sort standings by points and OMW
+    standings = [{"name": player, **stats} for player, stats in standings.items()]
     standings.sort(key=lambda x: (-x["points"], -x["omw"]))
     return standings
 
-def calculate_round_number():
-    return len(x)
-
-def calculate_pairing_history():
-    pairing_history = set()
-    for round_result in x:
-        for match in round_result.keys():
-            pairing_history.add(frozenset(match.split(" vs ")))
-    return pairing_history
-
-def generate_pairings():
+def new_round():
     global x
-    round_number = calculate_round_number() + 1
     pairings = []
 
-    if round_number == 1:
-        # Cross pairings for round 1 based on seating
-        half = len(players) // 2
-        for i in range(half):
-            pairings.append((players[i], players[i + half]))
+    # Swiss pairing
+    standings = calculate_standings()
+    unpaired = get_players()
+    pairing_history = {frozenset(match) for round_results in x for match in round_results}
 
-        # Assign a bye if there is an odd number of players
-        if len(players) % 2 == 1:
-            pairings.append((players[-1], "bye"))
-    else:
-        # Swiss pairings for subsequent rounds
-        standings = calculate_standings()
-        unpaired = standings.copy()
-        pairing_history = calculate_pairing_history()
+    while len(unpaired) > 1:
+        p1 = unpaired.pop(0)
+        # Find the first opponent that hasn't been played yet
+        for i, opponent in enumerate(unpaired):
+            if frozenset({p1, opponent}) not in pairing_history:
+                pairings.append((p1, opponent))
+                unpaired.pop(i)
+                break
 
-        while len(unpaired) > 1:
-            player1 = unpaired.pop(0)
-            # Find the first opponent that hasn't been played yet
-            for i, opponent in enumerate(unpaired):
-                if (
-                    frozenset({player1["name"], opponent["name"]})
-                    not in pairing_history
-                ):
-                    pairings.append((player1["name"], opponent["name"]))
-                    unpaired.pop(i)
-                    pairing_history.add(frozenset({player1["name"], opponent["name"]}))
-                    break
-
-        # Assign a bye if there is an odd number of players
-        if unpaired:
-            pairings.append((unpaired[0]["name"], "bye"))
+    # Assign a bye if there is an odd number of players
+    if unpaired:
+        pairings.append((unpaired[0], "bye"))
 
     # Add current pairings to x
-    x.append({f"{p1} vs {p2}": (0, 0) for p1, p2 in pairings})
+    x.append(OrderedDict(((p1, p2), (-1, -1) if p2 != "bye" else (2, 0)) for p1, p2 in pairings))
+
+def pairings_not_submitted():
+    return [pair for pair in get_pairing() if x[-1][pair][0] not in (0, 1, 2) or x[-1][pair][1] not in (0, 1, 2)]
 
 # Routes
 @app.route("/")
 def index():
-    pairings = calculate_pairings()
-    results = calculate_results()
-    standings = calculate_standings()
-    round_number = calculate_round_number()
-    pairing_history = calculate_pairing_history()
-
-    # Filter out matches that already have results from the dropdown menu
-    pairings_not_submitted = [
-        (p1, p2)
-        for p1, p2 in pairings
-        if f"{p1} vs {p2}" not in results and f"{p2} vs {p1}" not in results
-    ]
     return render_template(
         "index.html",
-        players=players,
-        pairings=pairings,
-        pairings_not_submitted=pairings_not_submitted,
-        standings=standings,
-        round_number=round_number,
+        players=get_players(),
+        pairings=get_pairing(),
+        pairings_not_submitted=pairings_not_submitted(),
+        standings=calculate_standings(),
+        round_number=len(x),
     )
 
 @app.route("/add_player", methods=["POST"])
 def add_player():
     name = request.form.get("name")
-    if name and name not in players:
-        players.append(name)
+    if name and name not in get_players():
+        global x
+        x[0] = make_round_result(get_players() + [name])
     return redirect(url_for("index"))
 
 @app.route("/start_draft", methods=["POST"])
 def start_draft():
-    if len(players) >= 2:
-        generate_seating()
-    return redirect(url_for("index"))
-
-@app.route("/start_round", methods=["POST"])
-def start_round():
-    if players:
-        generate_pairings()
+    shuffle_seating()
     return redirect(url_for("index"))
 
 @app.route("/submit_result", methods=["POST"])
 def submit_result():
-    pairings = calculate_pairings()
-    for i in range(len(pairings)):
-        p1_score = request.form.get(f"p1_score_{i}")
-        p2_score = request.form.get(f"p2_score_{i}")
-        if p1_score is not None and p2_score is not None:
-            p1_score = int(p1_score)
-            p2_score = int(p2_score)
-            match = f"{pairings[i][0]} vs {pairings[i][1]}"
-            x[-1][match] = (p1_score, p2_score)
-    generate_pairings()  # Automatically start a new round with new Swiss pairings
+    for i, (p1, p2) in enumerate(get_pairing()):
+        p1_games_won = int(request.form.get(f"p1_games_won_{i+1}"))
+        p2_games_won = int(request.form.get(f"p2_games_won_{i+1}"))
+
+        if p1_games_won in [0, 1, 2] and p2_games_won in [0, 1, 2]:
+            x[-1][(p1, p2)] = (p1_games_won, p2_games_won)
+
+    new_round()
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
-    # Prepopulate players
-    players = ["a", "b", "c", "d", "e", "f", "g", "h", "i"]
-
     # Generate initial seating and pairings
-    generate_seating()
-    generate_pairings()
-
+    shuffle_seating()
+    
     # Find local IP address
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
