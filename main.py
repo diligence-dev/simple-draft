@@ -6,18 +6,16 @@ app = Flask(__name__)
 
 # Store event data in memory
 players = []  # List of player names
-seating = []  # Draft seating order
 pairings = []  # Current round pairings
 results = {}  # Match results
 standings = []  # Standings by points and tiebreakers
 round_number = 0  # Current round
 pairing_history = set()  # Track all previous pairings
 
-
 # Helper functions
 def generate_seating():
-    global seating
-    seating = random.sample(players, len(players))
+    global players
+    players = random.sample(players, len(players))
 
 
 def generate_pairings():
@@ -27,13 +25,13 @@ def generate_pairings():
 
     if round_number == 1:
         # Cross pairings for round 1 based on seating
-        half = len(seating) // 2
+        half = len(players) // 2
         for i in range(half):
-            pairings.append((seating[i], seating[i + half]))
+            pairings.append((players[i], players[i + half]))
 
         # Assign a bye if there is an odd number of players
-        if len(seating) % 2 == 1:
-            pairings.append((seating[-1], "bye"))
+        if len(players) % 2 == 1:
+            pairings.append((players[-1], "bye"))
     else:
         # Swiss pairings for subsequent rounds
         unpaired = standings.copy()
@@ -120,7 +118,6 @@ def index():
     return render_template(
         "index.html",
         players=players,
-        seating=seating,
         pairings=pairings,
         pairings_not_submitted=pairings_not_submitted,
         standings=standings,
@@ -145,7 +142,7 @@ def start_draft():
 
 @app.route("/start_round", methods=["POST"])
 def start_round():
-    if seating:
+    if players:
         generate_pairings()
     return redirect(url_for("index"))
 
