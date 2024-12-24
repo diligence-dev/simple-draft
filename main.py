@@ -121,6 +121,10 @@ def index():
         round_number=len(x),
     )
 
+@app.route("/new_player")
+def new_player():
+    return render_template("new_player.html")
+
 @app.route("/add_player", methods=["POST"])
 def add_player():
     name = request.form.get("name")
