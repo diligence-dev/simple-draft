@@ -144,16 +144,20 @@ def submit_results():
 
 @app.route("/new_player")
 def new_player():
-    return render_template("new_player.html")
+    name = request.args.get("name")
+    error_message = None if not name else f"Player '{name}' already exists"
+    return render_template("new_player.html", error_message=error_message)
 
 @app.route("/add_player", methods=["POST"])
 def add_player():
+    global x
     name = request.form.get("name")
     name = re.sub(r'[^A-Za-z]', '_', name)
-    if name not in get_players():
-        global x
+    if name not in get_players() and len(x) == 1:
         x[0] = make_round_result(get_players() + [name])
-    return redirect(url_for("index"))
+        return redirect(url_for("player", name=name))
+    else:
+        return redirect(url_for("new_player", name=name))
 
 @app.route("/player/<name>")
 def player(name):
