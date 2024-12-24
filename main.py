@@ -3,6 +3,7 @@ import random
 import socket
 from collections import OrderedDict
 from statistics import mean
+import re
 
 app = Flask(__name__)
 
@@ -121,18 +122,6 @@ def index():
         round_number=len(x),
     )
 
-@app.route("/new_player")
-def new_player():
-    return render_template("new_player.html")
-
-@app.route("/add_player", methods=["POST"])
-def add_player():
-    name = request.form.get("name")
-    if name and name not in get_players():
-        global x
-        x[0] = make_round_result(get_players() + [name])
-    return redirect(url_for("index"))
-
 @app.route("/start_draft", methods=["POST"])
 def start_draft():
     shuffle_seating()
@@ -153,6 +142,19 @@ def submit_results():
 
 # player interface
 
+@app.route("/new_player")
+def new_player():
+    return render_template("new_player.html")
+
+@app.route("/add_player", methods=["POST"])
+def add_player():
+    name = request.form.get("name")
+    name = re.sub(r'[^A-Za-z]', '_', name)
+    if name not in get_players():
+        global x
+        x[0] = make_round_result(get_players() + [name])
+    return redirect(url_for("index"))
+
 @app.route("/player/<name>")
 def player(name):
     if name not in get_players():
@@ -162,7 +164,9 @@ def player(name):
     if not match:
         return redirect(url_for("index"))
 
-    return render_template("player.html", p1=match[0], p2=match[1])
+    return render_template("player.html", p1=match[0], p2=match[1],
+                           standings=calculate_standings(),
+                           players=get_players())
 
 @app.route("/submit_result", methods=["POST"])
 def submit_result():

@@ -17,7 +17,7 @@
             border: 1px solid #ddd;
             border-radius: 5px;
         }
-        h1 {
+        h1, h2 {
             text-align: center;
         }
         .form-group {
@@ -40,6 +40,27 @@
             width: 100%;
             box-sizing: border-box;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -54,6 +75,41 @@
             <input type="number" name="p2_games_won" id="p2_games_won" value="0" min="0" max="2" required>
             <button type="submit">Submit Result</button>
         </form>
+
+        <h2>Standings</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Points</th>
+                    <th>OMW</th>
+                    <th>Games Won</th>
+                    <th>Games Played</th>
+                    <th>Matches Played</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in standings %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ player.name }}</td>
+                        <td>{{ player.points }}</td>
+                        <td>{{ "%.2f"|format(player.omw) }}</td>
+                        <td>{{ player.games_won }}</td>
+                        <td>{{ player.games_played }}</td>
+                        <td>{{ player.matches_played }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Draft Seating</h2>
+        <ul>
+            {% for player in players %}
+                <li>{{ player }}</li>
+            {% endfor %}
+        </ul>
     </div>
 </body>
 </html>
