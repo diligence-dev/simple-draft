@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Match Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Submit Match Result</h1>
+        <form method="POST" action="/submit_result" class="form-group">
+            <input type="text" name="p1" id="p1" value="{{ p1 }}" readonly>
+            <label for="p1_games_won">Games Won by {{ p1 }}:</label>
+            <input type="number" name="p1_games_won" id="p1_games_won" value="0" min="0" max="2" required>
+            <input type="text" name="p2" id="p2" value="{{ p2 }}" readonly>
+            <label for="p2_games_won">Games Won by {{ p2 }}:</label>
+            <input type="number" name="p2_games_won" id="p2_games_won" value="0" min="0" max="2" required>
+            <button type="submit">Submit Result</button>
+        </form>
+    </div>
+</body>
+</html>

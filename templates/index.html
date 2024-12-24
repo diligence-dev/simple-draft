@@ -66,7 +66,7 @@
         <h3>Round: {{ round_number }}</h3>
 
         <h2>Pairings and Submit Results</h2>
-        <form method="POST" action="/submit_result" class="form-group">
+        <form method="POST" action="/submit_results" class="form-group">
             <ul>
                 {% for p1, p2 in pairings %}
                     {% if p2 == 'bye' %}
@@ -89,6 +89,7 @@
                     <th>OMW</th>
                     <th>Games Won</th>
                     <th>Games Played</th>
+                    <th>Matches Played</th>
                 </tr>
             </thead>
             <tbody>
@@ -100,6 +101,7 @@
                         <td>{{ "%.2f"|format(player.omw) }}</td>
                         <td>{{ player.games_won }}</td>
                         <td>{{ player.games_played }}</td>
+                        <td>{{ player.matches_played }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

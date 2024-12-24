@@ -138,8 +138,8 @@ def start_draft():
     shuffle_seating()
     return redirect(url_for("index"))
 
-@app.route("/submit_result", methods=["POST"])
-def submit_result():
+@app.route("/submit_results", methods=["POST"])
+def submit_results():
     for i, (p1, p2) in enumerate(get_pairing()):
         p1_games_won = int(request.form.get(f"p1_games_won_{i+1}"))
         p2_games_won = int(request.form.get(f"p2_games_won_{i+1}"))
@@ -150,12 +150,39 @@ def submit_result():
     new_round()
     return redirect(url_for("index"))
 
+
+# player interface
+
+@app.route("/player/<name>")
+def player(name):
+    if name not in get_players():
+        return redirect(url_for("index"))
+
+    match = next(((p1, p2) for p1, p2 in get_pairing() if name in (p1, p2)), None)
+    if not match:
+        return redirect(url_for("index"))
+
+    return render_template("player.html", p1=match[0], p2=match[1])
+
+@app.route("/submit_result", methods=["POST"])
+def submit_result():
+    p1 = request.form.get(f"p1")
+    p2 = request.form.get(f"p2")
+    p1_games_won = request.form.get(f"p1_games_won")
+    p2_games_won = request.form.get(f"p2_games_won")
+    if p1_games_won in ["0", "1", "2"] and p2_games_won in ["0", "1", "2"]:
+        x[-1][(p1, p2)] = (int(p1_games_won), int(p2_games_won))
+
+    return redirect(url_for("index"))
+
+
+
 if __name__ == "__main__":
     # Generate initial seating and pairings
     shuffle_seating()
-    
+
     # Find local IP address
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
-    print(f"Hosting on http://{local_ip}:5000")
+    print(f"Hosting on http://{local_ip}:5000/player/a")
     app.run(host=local_ip, port=5000)
