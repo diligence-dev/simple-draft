@@ -155,7 +155,7 @@ def add_player():
     name = re.sub(r'[^A-Za-z]', '_', name)
     if name not in get_players() and len(x) == 1:
         x[0] = make_round_result(get_players() + [name])
-        return redirect(url_for("player", name=name))
+        return redirect(f"/draft_seating/{name}")
     else:
         return redirect(url_for("new_player", name=name))
 
@@ -169,8 +169,7 @@ def player(name):
         return redirect(url_for("index"))
 
     return render_template("player.html", p1=match[0], p2=match[1],
-                           standings=calculate_standings(),
-                           players=get_players())
+                           standings=calculate_standings())
 
 @app.route("/submit_result", methods=["POST"])
 def submit_result():
@@ -183,6 +182,15 @@ def submit_result():
 
     return redirect(url_for("index"))
 
+@app.route("/draft_seating")
+def draft_seating():
+    return render_template("draft_seating.html", players=get_players(), highlight=None)
+
+@app.route("/draft_seating/<name>")
+def draft_seating_highlight(name):
+    if name not in get_players():
+        return redirect(url_for("draft_seating"))
+    return render_template("draft_seating.html", players=get_players(), highlight=name)
 
 
 if __name__ == "__main__":
