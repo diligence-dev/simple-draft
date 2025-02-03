@@ -32,6 +32,9 @@ def shuffle_seating():
 def get_pairing():
     return list(x[-1].keys())
 
+def get_pairing_with_score():
+    return x[-1].items()
+
 def calculate_standings():
     standings = {player: {"points": 0, "games_won": 0, "games_played": 0, "matches_played": 0}
                  for player in get_players() + ["bye"]}
@@ -107,17 +110,14 @@ def new_round():
     # Add current pairings to x
     x.append(OrderedDict(((p1, p2), (-1, -1) if p2 != "bye" else (2, 0)) for p1, p2 in pairings))
 
-def pairings_not_submitted():
-    return [pair for pair in get_pairing() if x[-1][pair][0] not in (0, 1, 2) or x[-1][pair][1] not in (0, 1, 2)]
-
 # Routes
 @app.route("/")
 def index():
     return render_template(
         "index.html",
         players=get_players(),
-        pairings=get_pairing(),
-        pairings_not_submitted=pairings_not_submitted(),
+        pairing=get_pairing(),
+        pairing_with_score=get_pairing_with_score(),
         standings=calculate_standings(),
         round_number=len(x),
     )

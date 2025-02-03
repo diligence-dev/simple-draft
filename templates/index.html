@@ -65,14 +65,14 @@
         <h1>Simple Draft</h1>
         <h3>Round: {{ round_number }}</h3>
 
-        <h2>Pairings and Submit Results</h2>
+        <h2>Pairing and Submit Results</h2>
         <form method="POST" action="/submit_results" class="form-group">
             <ul>
-                {% for p1, p2 in pairings %}
+                {% for (p1, p2), (s1, s2) in pairing_with_score %}
                     {% if p2 == 'bye' %}
                         <li>{{ p1 }} <input type="number" name="p1_games_won_{{ loop.index }}" value="2" readonly style="width: 80px;"> vs <input type="number" name="p2_games_won_{{ loop.index }}" value="0" readonly style="width: 80px;"> {{ p2 }}</li>
                     {% else %}
-                        <li>{{ p1 }} <input type="number" name="p1_games_won_{{ loop.index }}" id="p1_games_won_{{ loop.index }}" value="0" min="0" max="2" style="width: 80px;" required> vs <input type="number" name="p2_games_won_{{ loop.index }}" id="p2_games_won_{{ loop.index }}" value="2" min="0" max="2" style="width: 80px;" required> {{ p2 }}</li>
+                        <li>{{ p1 }} <input type="number" name="p1_games_won_{{ loop.index }}" id="p1_games_won_{{ loop.index }}" value="{{ s1 }}" min="0" max="2" style="width: 80px;" required> vs <input type="number" name="p2_games_won_{{ loop.index }}" id="p2_games_won_{{ loop.index }}" value="{{ s2 }}" min="0" max="2" style="width: 80px;" required> {{ p2 }}</li>
                     {% endif %}
                 {% endfor %}
             </ul>
