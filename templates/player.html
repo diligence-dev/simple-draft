@@ -67,13 +67,17 @@
     <div class="container">
         <h1>Submit Match Result</h1>
         <form method="POST" action="/submit_result" class="form-group">
+            <input type="hidden" name="submitting_player" id="submitting_player" value="{{ name }}">
             <input type="text" name="p1" id="p1" value="{{ p1 }}" readonly>
             <label for="p1_games_won">Games Won by {{ p1 }}:</label>
-            <input type="number" name="p1_games_won" id="p1_games_won" value="0" min="0" max="2" required>
+            <input type="number" name="p1_games_won" id="p1_games_won" value="{{ s1 }}" min="0" max="2" required>
             <input type="text" name="p2" id="p2" value="{{ p2 }}" readonly>
             <label for="p2_games_won">Games Won by {{ p2 }}:</label>
-            <input type="number" name="p2_games_won" id="p2_games_won" value="0" min="0" max="2" required>
+            <input type="number" name="p2_games_won" id="p2_games_won" value="{{ s2 }}" min="0" max="2" required>
             <button type="submit">Submit Result</button>
+            {% if s1 != -1 and s2 != -1 %}
+                <p>Currently submitted score: {{ p1 }} {{ s1 }} - {{ s2 }} {{ p2 }}</p>
+            {% endif %}
         </form>
 
         <h2>Standings</h2>
@@ -91,7 +95,11 @@
             </thead>
             <tbody>
                 {% for player in standings %}
+                    {% if player.name == name %}
+                    <tr style="background-color: #FFFF99;">
+                    {% else %}
                     <tr>
+                    {% endif %}
                         <td>{{ loop.index }}</td>
                         <td>{{ player.name }}</td>
                         <td>{{ player.points }}</td>

@@ -164,11 +164,11 @@ def player(name):
     if name not in get_players():
         return redirect(url_for("index"))
 
-    match = next(((p1, p2) for p1, p2 in get_pairing() if name in (p1, p2)), None)
+    match = next(((p1, p2, s1, s2) for (p1, p2), (s1, s2) in get_pairing_with_score() if name in (p1, p2)), None)
     if not match:
         return redirect(url_for("index"))
 
-    return render_template("player.html", p1=match[0], p2=match[1],
+    return render_template("player.html", p1=match[0], p2=match[1], s1=match[2], s2=match[3], name=name,
                            standings=calculate_standings())
 
 @app.route("/submit_result", methods=["POST"])
@@ -177,10 +177,12 @@ def submit_result():
     p2 = request.form.get(f"p2")
     p1_games_won = request.form.get(f"p1_games_won")
     p2_games_won = request.form.get(f"p2_games_won")
-    if p1_games_won in ["0", "1", "2"] and p2_games_won in ["0", "1", "2"]:
+    submitting_player = request.form.get(f"submitting_player")
+
+    if p1_games_won in ["0", "1", "2"] and p2_games_won in ["0", "1", "2"] and (p1_games_won != "2" or p2_games_won != "2"):
         x[-1][(p1, p2)] = (int(p1_games_won), int(p2_games_won))
 
-    return redirect(url_for("index"))
+    return redirect(url_for("player", name=submitting_player))
 
 @app.route("/draft_seating")
 def draft_seating():
