@@ -5,6 +5,8 @@ from collections import OrderedDict
 from statistics import mean
 import re
 
+port = 5000
+
 app = Flask(__name__)
 
 def make_round_result(players):
@@ -138,7 +140,7 @@ def index():
 
 @app.route("/qr")
 def qr():
-    url = "http://" + get_ip_address() + ":5000/new_player"
+    url = f"http://{get_ip_address()}:{port}/new_player"
     return render_template("qr.html", url=url)
 
 @app.route("/start_draft", methods=["POST"])
@@ -217,4 +219,4 @@ if __name__ == "__main__":
     # Generate initial seating and pairings
     shuffle_seating()
 
-    app.run(host=get_ip_address(), port=5000)
+    app.run(host=get_ip_address(), port=port)
