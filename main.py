@@ -139,7 +139,6 @@ def submit_results():
     new_round()
     return redirect(url_for("index"))
 
-
 # player interface
 
 @app.route("/new_player")
@@ -199,8 +198,16 @@ if __name__ == "__main__":
     # Generate initial seating and pairings
     shuffle_seating()
 
-    # Find local IP address
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
+    local_ip = socket.gethostbyname(socket.gethostname())
+    if local_ip.startswith("127."):
+        # If the IP address is localhost, find the actual local IP address
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("10.254.254.254", 1))
+            local_ip = s.getsockname()[0]
+        except Exception:
+            local_ip = "127.0.0.1"
+        finally:
+            s.close()
     print(f"Hosting on http://{local_ip}:5000/player/a")
     app.run(host=local_ip, port=5000)
