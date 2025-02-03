@@ -35,6 +35,20 @@ def get_pairing():
 def get_pairing_with_score():
     return x[-1].items()
 
+def get_ip_address():
+    local_ip = socket.gethostbyname(socket.gethostname())
+    if local_ip.startswith("127."):
+        # If the IP address is localhost, find the actual local IP address
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("10.254.254.254", 1))
+            local_ip = s.getsockname()[0]
+        except Exception:
+            local_ip = "127.0.0.1"
+        finally:
+            s.close()
+    return local_ip
+
 def calculate_standings():
     standings = {player: {"points": 0, "games_won": 0, "games_played": 0, "matches_played": 0}
                  for player in get_players() + ["bye"]}
@@ -122,6 +136,11 @@ def index():
         round_number=len(x),
     )
 
+@app.route("/qr")
+def qr():
+    url = "http://" + get_ip_address() + ":5000/new_player"
+    return render_template("qr.html", url=url)
+
 @app.route("/start_draft", methods=["POST"])
 def start_draft():
     shuffle_seating()
@@ -198,16 +217,4 @@ if __name__ == "__main__":
     # Generate initial seating and pairings
     shuffle_seating()
 
-    local_ip = socket.gethostbyname(socket.gethostname())
-    if local_ip.startswith("127."):
-        # If the IP address is localhost, find the actual local IP address
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            s.connect(("10.254.254.254", 1))
-            local_ip = s.getsockname()[0]
-        except Exception:
-            local_ip = "127.0.0.1"
-        finally:
-            s.close()
-    print(f"Hosting on http://{local_ip}:5000/player/a")
-    app.run(host=local_ip, port=5000)
+    app.run(host=get_ip_address(), port=5000)
