@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template, redirect, url_for
 import random
-import socket
+import requests
 from collections import OrderedDict
 from statistics import mean
 import re
@@ -19,19 +19,21 @@ def save_state():
     previous_states.append(copy.deepcopy(x))
 
 def make_round_result(players):
-    if len(players) % 2 == 1:
+    need_bye = len(players) % 2 == 1
+    if need_bye:
         players.append("bye")
     round_results = OrderedDict(
         ((players[i], players[i + 1]), (-1, -1)) for i in range(0, len(players), 2)
     )
-    if list(round_results.keys())[-1][1] == "bye":
+    if need_bye:
         round_results[list(round_results.keys())[-1]] = (2, 0)
     return round_results
 
 
 # List of round results, where each round result is an OrderedDict of pairs (p1, p2) as keys and (p1_game_wins, p2_game_wins) as values
 # x = [make_round_result(["a", "b", "c", "d", "e", "f", "g"])]
-x = [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])]
+# x = [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])]
+x = [make_round_result([])]
 
 
 def get_players():
@@ -53,21 +55,6 @@ def get_pairing():
 
 def get_pairing_with_score():
     return x[-1].items()
-
-
-def get_ip_address():
-    local_ip = socket.gethostbyname(socket.gethostname())
-    if local_ip.startswith("127."):
-        # If the IP address is localhost, find the actual local IP address
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            s.connect(("10.254.254.254", 1))
-            local_ip = s.getsockname()[0]
-        except Exception:
-            local_ip = "127.0.0.1"
-        finally:
-            s.close()
-    return local_ip
 
 
 def calculate_standings():
@@ -180,7 +167,13 @@ def index():
 
 @app.route("/qr")
 def qr():
-    url = f"http://{get_ip_address()}:{port}/new_player"
+    try:
+        response = requests.get('https://api.ipify.org?format=json')
+        response.raise_for_status()
+        public_ip = response.json()['ip']
+    except requests.RequestException:
+        public_ip = "Unable to fetch public IP"
+    url = f"http://{public_ip}:{port}/new_player"
     return render_template("qr.html", url=url, players=get_players())
 
 
@@ -299,4 +292,4 @@ if __name__ == "__main__":
     # Generate initial seating and pairings
     shuffle_seating()
 
-    app.run(host=get_ip_address(), port=port)
+    app.run(host="0.0.0.0", port=port)
