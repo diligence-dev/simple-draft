@@ -14,9 +14,11 @@ app = Flask(__name__)
 # List to store previous states
 previous_states = []
 
+
 def save_state():
     global previous_states, x
     previous_states.append(copy.deepcopy(x))
+
 
 def make_round_result(players):
     need_bye = len(players) % 2 == 1
@@ -122,7 +124,9 @@ def new_round():
     # Swiss pairing using maximum weight matching
     standings = calculate_standings()
     players = get_players()
-    pairing_history = {frozenset(match) for round_results in x for match in round_results}
+    pairing_history = {
+        frozenset(match) for round_results in x for match in round_results
+    }
 
     # Add a dummy player for the bye if there is an odd number of players
     if len(players) % 2 == 1:
@@ -137,10 +141,14 @@ def new_round():
 
     # Add edges with weights based on points
     for i, p1 in enumerate(players):
-        for p2 in players[i + 1:]:
+        for p2 in players[i + 1 :]:
             if frozenset({p1, p2}) not in pairing_history:
-                weight = abs(standings[i]["points"] - standings[players.index(p2)]["points"])
-                G.add_edge(p1, p2, weight=-weight)  # Use negative weight for maximum weight matching
+                weight = abs(
+                    standings[i]["points"] - standings[players.index(p2)]["points"]
+                )
+                G.add_edge(
+                    p1, p2, weight=-weight
+                )  # Use negative weight for maximum weight matching
 
     # Find the maximum weight matching
     matching = nx.max_weight_matching(G, maxcardinality=True)
@@ -149,7 +157,11 @@ def new_round():
     pairings = list(matching)
 
     # Add current pairings to x
-    x.append(OrderedDict(((p1, p2), (-1, -1) if p2 != "bye" else (2, 0)) for p1, p2 in pairings))
+    x.append(
+        OrderedDict(
+            ((p1, p2), (-1, -1) if p2 != "bye" else (2, 0)) for p1, p2 in pairings
+        )
+    )
 
 
 # Routes
@@ -168,9 +180,9 @@ def index():
 @app.route("/qr")
 def qr():
     try:
-        response = requests.get('https://api.ipify.org?format=json')
+        response = requests.get("https://api.ipify.org?format=json")
         response.raise_for_status()
-        public_ip = response.json()['ip']
+        public_ip = response.json()["ip"]
     except requests.RequestException:
         public_ip = "Unable to fetch public IP"
     url = f"http://{public_ip}:{port}/new_player"
@@ -288,8 +300,9 @@ def undo():
         x = previous_states.pop()
     return redirect(url_for("index"))
 
+
 if __name__ == "__main__":
     # Generate initial seating and pairings
     shuffle_seating()
 
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="localhost", port=port)
