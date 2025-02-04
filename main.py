@@ -4,6 +4,7 @@ import socket
 from collections import OrderedDict
 from statistics import mean
 import re
+import networkx as nx
 
 port = 5000
 
@@ -22,7 +23,7 @@ def make_round_result(players):
 
 
 # List of round results, where each round result is an OrderedDict of pairs (p1, p2) as keys and (p1_game_wins, p2_game_wins) as values
-x = [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h", "i"])]
+x = [make_round_result(["a", "b", "c", "d", "e", "f", "g"])]
 
 
 def get_players():
@@ -121,32 +122,37 @@ def new_round():
     global x
     pairings = []
 
-    # Swiss pairing
+    # Swiss pairing using maximum weight matching
     standings = calculate_standings()
-    unpaired = get_players()
-    pairing_history = {
-        frozenset(match) for round_results in x for match in round_results
-    }
+    players = get_players()
+    pairing_history = {frozenset(match) for round_results in x for match in round_results}
 
-    while len(unpaired) > 1:
-        p1 = unpaired.pop(0)
-        # Find the first opponent that hasn't been played yet
-        for i, opponent in enumerate(unpaired):
-            if frozenset({p1, opponent}) not in pairing_history:
-                pairings.append((p1, opponent))
-                unpaired.pop(i)
-                break
+    # Add a dummy player for the bye if there is an odd number of players
+    if len(players) % 2 == 1:
+        players.append("bye")
+        standings.append({"name": "bye", "points": 0})
 
-    # Assign a bye if there is an odd number of players
-    if unpaired:
-        pairings.append((unpaired[0], "bye"))
+    # Create a graph
+    G = nx.Graph()
+
+    # Add nodes
+    G.add_nodes_from(players)
+
+    # Add edges with weights based on points
+    for i, p1 in enumerate(players):
+        for p2 in players[i + 1:]:
+            if frozenset({p1, p2}) not in pairing_history:
+                weight = abs(standings[i]["points"] - standings[players.index(p2)]["points"])
+                G.add_edge(p1, p2, weight=-weight)  # Use negative weight for maximum weight matching
+
+    # Find the maximum weight matching
+    matching = nx.max_weight_matching(G, maxcardinality=True)
+
+    # Convert matching to pairings
+    pairings = list(matching)
 
     # Add current pairings to x
-    x.append(
-        OrderedDict(
-            ((p1, p2), (-1, -1) if p2 != "bye" else (2, 0)) for p1, p2 in pairings
-        )
-    )
+    x.append(OrderedDict(((p1, p2), (-1, -1) if p2 != "bye" else (2, 0)) for p1, p2 in pairings))
 
 
 # Routes
