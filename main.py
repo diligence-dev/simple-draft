@@ -5,11 +5,18 @@ from collections import OrderedDict
 from statistics import mean
 import re
 import networkx as nx
+import copy
 
 port = 5000
 
 app = Flask(__name__)
 
+# List to store previous states
+previous_states = []
+
+def save_state():
+    global previous_states, x
+    previous_states.append(copy.deepcopy(x))
 
 def make_round_result(players):
     if len(players) % 2 == 1:
@@ -23,7 +30,8 @@ def make_round_result(players):
 
 
 # List of round results, where each round result is an OrderedDict of pairs (p1, p2) as keys and (p1_game_wins, p2_game_wins) as values
-x = [make_round_result(["a", "b", "c", "d", "e", "f", "g"])]
+# x = [make_round_result(["a", "b", "c", "d", "e", "f", "g"])]
+x = [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])]
 
 
 def get_players():
@@ -34,6 +42,7 @@ def get_players():
 
 def shuffle_seating():
     global x
+    save_state()
     assert len(x) == 1
     x[0] = make_round_result(random.sample(get_players(), len(get_players())))
 
@@ -120,6 +129,7 @@ def calculate_standings():
 
 def new_round():
     global x
+    save_state()
     pairings = []
 
     # Swiss pairing using maximum weight matching
@@ -182,6 +192,8 @@ def start_draft():
 
 @app.route("/submit_results", methods=["POST"])
 def submit_results():
+    global x
+    save_state()
     for i, (p1, p2) in enumerate(get_pairing()):
         p1_games_won = int(request.form.get(f"p1_games_won_{i+1}"))
         p2_games_won = int(request.form.get(f"p2_games_won_{i+1}"))
@@ -206,6 +218,7 @@ def new_player():
 @app.route("/add_player", methods=["POST"])
 def add_player():
     global x
+    save_state()
     name = request.form.get("name")
     name = re.sub(r"[^A-Za-z]", "_", name)
     if name not in get_players() and len(x) == 1:
@@ -244,6 +257,8 @@ def player(name):
 
 @app.route("/submit_result", methods=["POST"])
 def submit_result():
+    global x
+    save_state()
     p1 = request.form.get(f"p1")
     p2 = request.form.get(f"p2")
     p1_games_won = request.form.get(f"p1_games_won")
@@ -254,6 +269,7 @@ def submit_result():
         p1_games_won in ["0", "1", "2"]
         and p2_games_won in ["0", "1", "2"]
         and (p1_games_won != "2" or p2_games_won != "2")
+        and (p1, p2) in x[-1].keys()
     ):
         x[-1][(p1, p2)] = (int(p1_games_won), int(p2_games_won))
 
@@ -271,6 +287,13 @@ def draft_seating_highlight(name):
         return redirect(url_for("draft_seating"))
     return render_template("draft_seating.html", players=get_players(), highlight=name)
 
+
+@app.route("/undo")
+def undo():
+    global previous_states, x
+    if previous_states:
+        x = previous_states.pop()
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     # Generate initial seating and pairings
