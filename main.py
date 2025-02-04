@@ -171,7 +171,7 @@ def index():
 @app.route("/qr")
 def qr():
     url = f"http://{get_ip_address()}:{port}/new_player"
-    return render_template("qr.html", url=url)
+    return render_template("qr.html", url=url, players=get_players())
 
 
 @app.route("/start_draft", methods=["POST"])
