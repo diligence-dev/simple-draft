@@ -211,7 +211,7 @@ def submit_results():
 def new_player():
     name = request.args.get("name")
     error_message = None if not name else f"Player '{name}' already exists"
-    return render_template("new_player.html", error_message=error_message)
+    return render_template("new_player.html", error_message=error_message, players=get_players())
 
 
 @app.route("/add_player", methods=["POST"])
