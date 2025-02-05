@@ -11,15 +11,6 @@ port = 5000
 
 app = Flask(__name__)
 
-# List to store previous states
-previous_states = []
-
-
-def save_state():
-    global previous_states, x
-    previous_states.append(copy.deepcopy(x))
-
-
 def make_round_result(players):
     need_bye = len(players) % 2 == 1
     if need_bye:
@@ -36,6 +27,12 @@ def make_round_result(players):
 # x = [make_round_result(["a", "b", "c", "d", "e", "f", "g"])]
 # x = [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])]
 x = [make_round_result([])]
+
+previous_states = []
+
+def save_state():
+    global previous_states, x
+    previous_states.append(copy.deepcopy(x))
 
 
 def get_players():
@@ -123,7 +120,7 @@ def new_round():
 
     # Swiss pairing using maximum weight matching
     standings = calculate_standings()
-    players = get_players()
+    players = [p["name"] for p in standings] # in standings order
     pairing_history = {
         frozenset(match) for round_results in x for match in round_results
     }
@@ -143,12 +140,8 @@ def new_round():
     for i, p1 in enumerate(players):
         for p2 in players[i + 1 :]:
             if frozenset({p1, p2}) not in pairing_history:
-                weight = abs(
-                    standings[i]["points"] - standings[players.index(p2)]["points"]
-                )
-                G.add_edge(
-                    p1, p2, weight=-weight
-                )  # Use negative weight for maximum weight matching
+                score_diff = abs(standings[i]["points"] - standings[players.index(p2)]["points"])
+                G.add_edge(p1, p2, weight=-score_diff)
 
     # Find the maximum weight matching
     matching = nx.max_weight_matching(G, maxcardinality=True)
