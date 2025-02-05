@@ -24,10 +24,10 @@ def make_round_result(players):
 
 
 # List of round results, where each round result is an OrderedDict of pairs (p1, p2) as keys and (p1_game_wins, p2_game_wins) as values
-x = [make_round_result(["a", "b", "c", "d"])]
+# x = [make_round_result(["a", "b", "c", "d"])]
 # x = [make_round_result(["a", "b", "c", "d", "e", "f", "g"])]
 # x = [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])]
-# x = [make_round_result([])]
+x = [make_round_result([])]
 
 previous_states = []
 
