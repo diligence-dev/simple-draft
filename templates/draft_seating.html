@@ -35,6 +35,7 @@
 <body>
     <div class="container">
         <h1>Draft Seating</h1>
+        <div>Wait until all players joined, then reload this page</div>
         <ul>
             {% for player in players %}
                 <li class="{% if player == highlight %}highlight{% endif %}">{{ loop.index }}. {{ player }}</li>
