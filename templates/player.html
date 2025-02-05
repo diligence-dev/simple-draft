@@ -65,7 +65,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>Submit Match Result</h1>
+        {% if p1 != name %}
+        <h1>{{ p1 }} is your opponent</h1>
+        {% else %}
+        <h1>{{ p2 }} is your opponent</h1>
+        {% endif %}
         <form method="POST" action="/submit_result" class="form-group">
             <input type="hidden" name="submitting_player" id="submitting_player" value="{{ name }}">
             <input type="text" name="p1" id="p1" value="{{ p1 }}" readonly hidden>
