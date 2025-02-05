@@ -171,16 +171,10 @@ def index():
     )
 
 
-@app.route("/qr")
+@app.route("/qr", methods=["POST"])
 def qr():
-    try:
-        response = requests.get("https://api.ipify.org?format=json")
-        response.raise_for_status()
-        public_ip = response.json()["ip"]
-    except requests.RequestException:
-        public_ip = "Unable to fetch public IP"
-    url = f"http://{public_ip}:{port}/new_player"
-    return render_template("qr.html", url=url, players=get_players())
+    url = request.form.get("url")
+    return render_template("qr.html", url=f"{url}/new_player", players=get_players())
 
 
 @app.route("/start_draft", methods=["POST"])

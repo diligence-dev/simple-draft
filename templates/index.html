@@ -125,7 +125,11 @@
         </ul>
 
         <a href="/undo">undo</a><br>
-        <a href="/qr">show QR code</a>
+
+        <form method="POST" action="/qr" class="form-group">
+            <input type="text" name="url" id="url" required>
+            <button type="submit">Show QR Code</button>
+        </form>
     </div>
 </body>
 </html>
