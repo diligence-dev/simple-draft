@@ -73,6 +73,7 @@
             <input type="text" name="name" id="name" required>
             <button type="submit">Add Player</button>
         </form>
+        {% if length(players) > 0 %}
         <br>
         <br>
         <h2>You're already registered? Login as...</h2>
@@ -81,6 +82,7 @@
                 <li><a href="/draft_seating/{{ player }}" class="player-button">{{ player }}</a></li>
             {% endfor %}
         </ul>
+        {% endif %}
     </div>
 </body>
 </html>
