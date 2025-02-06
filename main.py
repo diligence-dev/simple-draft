@@ -38,13 +38,6 @@ def get_players(event_id):
         p if p != "bye" else o for o, p in x[0].keys()
     ]
 
-def shuffle_seating(event_id):
-    global events
-    save_state(event_id)
-    x = events[event_id]["x"]
-    assert len(x) == 1
-    x[0] = make_round_result(random.sample(get_players(event_id), len(get_players(event_id))))
-
 def get_pairing(event_id):
     return list(events[event_id]["x"][-1].keys())
 
@@ -171,9 +164,13 @@ def qr(event_id):
     url = request.form.get("url")
     return render_template("qr.html", url=f"{url}/{event_id}/new_player", players=get_players(event_id))
 
-@app.route("/<int:event_id>/start_draft", methods=["POST"])
-def start_draft(event_id):
-    shuffle_seating(event_id)
+@app.route("/<int:event_id>/shuffle_seatings", methods=["POST"])
+def shuffle_seatings(event_id):
+    global events
+    save_state(event_id)
+    x = events[event_id]["x"]
+    assert len(x) == 1
+    x[0] = make_round_result(random.sample(get_players(event_id), len(get_players(event_id))))
     return redirect(url_for("index", event_id=event_id))
 
 @app.route("/<int:event_id>/submit_results", methods=["POST"])
