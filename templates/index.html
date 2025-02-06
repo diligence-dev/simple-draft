@@ -62,11 +62,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>Simple Draft</h1>
+        <h1>Simple Draft - Event ID {{ event_id }}</h1>
         <h3>Round: {{ round_number }}</h3>
 
         <h2>Pairing and Submit Results</h2>
-        <form method="POST" action="/submit_results" class="form-group">
+        <form method="POST" action="/{{ event_id }}/submit_results" class="form-group">
             <ul>
                 {% for (p1, p2), (s1, s2) in pairing_with_score %}
                     {% if p2 == 'bye' %}
@@ -108,12 +108,12 @@
         </table>
 
         <h2>Actions</h2>
-        <form method="POST" action="/add_player" class="form-group">
+        <form method="POST" action="/{{ event_id }}/add_player" class="form-group">
             <label for="name">Add Player:</label>
             <input type="text" name="name" id="name" required>
             <button type="submit">Add</button>
         </form>
-        <form method="POST" action="/start_draft" class="form-group">
+        <form method="POST" action="/{{ event_id }}/start_draft" class="form-group">
             <button type="submit">Start Draft</button>
         </form>
 
@@ -124,9 +124,9 @@
             {% endfor %}
         </ul>
 
-        <a href="/undo">undo</a><br>
+        <a href="/{{ event_id }}/undo">undo</a><br>
 
-        <form method="POST" action="/qr" class="form-group">
+        <form method="POST" action="/{{ event_id }}/qr" class="form-group">
             <input type="text" name="url" id="url" required>
             <button type="submit">Show QR Code</button>
         </form>

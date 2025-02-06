@@ -70,7 +70,7 @@
         {% else %}
         <h1>{{ p2 }} is your opponent</h1>
         {% endif %}
-        <form method="POST" action="/submit_result" class="form-group">
+        <form method="POST" action="/{{ event_id }}/submit_result" class="form-group">
             <input type="hidden" name="submitting_player" id="submitting_player" value="{{ name }}">
             <input type="text" name="p1" id="p1" value="{{ p1 }}" readonly hidden>
             <label for="p1_games_won">Games Won by {{ p1 }}:</label>

@@ -50,10 +50,10 @@
             width: 70%;
             padding: 10px;
             margin: 5px 0;
-            background-color: #f4f4f4;
             border: 1px solid #ddd;
             border-radius: 5px;
             text-decoration: none;
+            background-color: #007BFF;
             color: black;
             text-align: center;
         }
@@ -68,18 +68,18 @@
         {% if error_message %}
             <div class="error-message">{{ error_message }}</div>
         {% endif %}
-        <form method="POST" action="/add_player" class="form-group">
+        <form method="POST" action="/{{ event_id }}/add_player" class="form-group">
             <label for="name">Player Name:</label>
             <input type="text" name="name" id="name" required>
             <button type="submit">Add Player</button>
         </form>
-        {% if length(players) > 0 %}
+        {% if players %}
         <br>
         <br>
         <h2>You're already registered? Login as...</h2>
         <ul>
             {% for player in players %}
-                <li><a href="/draft_seating/{{ player }}" class="player-button">{{ player }}</a></li>
+                <li><a href="/{{ event_id }}/draft_seating/{{ player }}" class="player-button">{{ player }}</a></li>
             {% endfor %}
         </ul>
         {% endif %}
