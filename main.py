@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 # Dictionary to store state for each event
 events = defaultdict(
-    lambda: {"x": [make_round_result(["a", "b", "c", "d"])], "previous_states": []}
+    lambda: {"x": [make_round_result([])], "previous_states": []}
 )
 
 
@@ -21,6 +21,8 @@ def save_state(event_id):
 
 
 def make_round_result(players):
+    # TODO check bye (sometimes not 0-2 pre-filled)
+    # model bye as "regular" player? what are the rules wrt omw?
     if len(players) % 2 == 1:
         players.append("bye")
     round_results = OrderedDict(
@@ -132,7 +134,7 @@ def new_round(event_id):
                 score_diff = abs(
                     standings[i]["points"] - standings[players.index(p2)]["points"]
                 )
-                G.add_edge(p1, p2, weight=-score_diff)
+                G.add_edge(p1, p2, weight=-score_diff*score_diff)
 
     # Find the maximum weight matching
     matching = nx.max_weight_matching(G, maxcardinality=True)
@@ -166,7 +168,7 @@ def index(event_id):
 def qr(event_id):
     url = request.form.get("url")
     return render_template(
-        "qr.html", url=f"{url}/{event_id}/new_player", players=get_players(event_id)
+        "qr.html", url=f"{url}new_player", players=get_players(event_id)
     )
 
 
