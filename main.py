@@ -88,7 +88,7 @@ def calculate_standings(event_id):
     for player in get_players(event_id):
         opponents = [
             match[0] if match[1] == player else match[1]
-            for round_results in x
+            for round_results in x[:(len(x)-1)]
             for match in round_results.keys()
             if player in match and "bye" not in match
         ]
