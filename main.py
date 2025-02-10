@@ -10,16 +10,6 @@ port = 5000
 
 app = Flask(__name__)
 
-# Dictionary to store state for each event
-events = defaultdict(
-    lambda: {"x": [make_round_result([])], "previous_states": []}
-)
-
-
-def save_state(event_id):
-    events[event_id]["previous_states"].append(copy.deepcopy(events[event_id]["x"]))
-
-
 def make_round_result(players):
     # TODO check bye (sometimes not 0-2 pre-filled)
     # model bye as "regular" player? what are the rules wrt omw?
@@ -28,9 +18,20 @@ def make_round_result(players):
     round_results = OrderedDict(
         ((players[i], players[i + 1]), (-1, -1)) for i in range(0, len(players), 2)
     )
-    if players[-1] == "bye":
+    if len(players) > 0 and players[-1] == "bye":
         round_results[(players[-2], "bye")] = (2, 0)
     return round_results
+
+
+# Dictionary to store state for each event
+events = defaultdict(
+    lambda: {"x": [make_round_result([])], "previous_states": []}
+)
+events[0] = {"x": [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])], "previous_states": []}
+
+
+def save_state(event_id):
+    events[event_id]["previous_states"].append(copy.deepcopy(events[event_id]["x"]))
 
 
 def get_players(event_id):
