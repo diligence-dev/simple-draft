@@ -87,6 +87,8 @@
                     <th>Player</th>
                     <th>Points</th>
                     <th>OMW</th>
+                    <th>GW</th>
+                    <th>OGW</th>
                     <th>Games Won</th>
                     <th>Games Played</th>
                     <th>Matches Played</th>
@@ -98,7 +100,9 @@
                         <td>{{ loop.index }}</td>
                         <td>{{ player.name }}</td>
                         <td>{{ player.points }}</td>
-                        <td>{{ "%.2f"|format(player.omw) }}</td>
+                        <td>{{ "%.3f"|format(player.omw) }}</td>
+                        <td>{{ "%.3f"|format(player.gw) }}</td>
+                        <td>{{ "%.3f"|format(player.ogw) }}</td>
                         <td>{{ player.games_won }}</td>
                         <td>{{ player.games_played }}</td>
                         <td>{{ player.matches_played }}</td>

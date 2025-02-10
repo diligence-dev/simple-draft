@@ -11,8 +11,6 @@ port = 5000
 app = Flask(__name__)
 
 def make_round_result(players):
-    # TODO check bye (sometimes not 0-2 pre-filled)
-    # model bye as "regular" player? what are the rules wrt omw?
     if len(players) % 2 == 1:
         players.append("bye")
     round_results = OrderedDict(
@@ -36,10 +34,10 @@ def save_state(event_id):
 
 def get_players(event_id):
     x = events[event_id]["x"]
-    return [p for p, o in x[0].keys() if o != "bye"] + [
-        p if p != "bye" else o for o, p in x[0].keys()
-    ]
+    return [p1 for p1, _ in x[0].keys()] + [p2 for _, p2 in x[0].keys()]
 
+def get_players_no_bye(event_id):
+    return [p for p in get_players(event_id) if p != "bye"]
 
 def get_pairing(event_id):
     return list(events[event_id]["x"][-1].keys())
@@ -53,7 +51,7 @@ def calculate_standings(event_id):
     x = events[event_id]["x"]
     standings = {
         player: {"points": 0, "games_won": 0, "games_played": 0, "matches_played": 0}
-        for player in get_players(event_id) + ["bye"]
+        for player in get_players(event_id)
     }
 
     for round_results in x:
@@ -74,16 +72,14 @@ def calculate_standings(event_id):
             standings[p1]["matches_played"] += 1
             standings[p2]["matches_played"] += 1
 
-    del standings["bye"]
-
     # Calculate player match winrate
     for player in get_players(event_id):
         p = standings[player]
         if p["matches_played"] == 0:
-            standings[player]["match_winrate"] = 1.0
+            standings[player]["match_winrate"] = -100
         else:
             standings[player]["match_winrate"] = max(
-                0.33, p["points"] / (3 * p["matches_played"])
+                0.333, p["points"] / (3 * p["matches_played"])
             )
 
 # TODO check omw
@@ -91,20 +87,45 @@ def calculate_standings(event_id):
     for player in get_players(event_id):
         opponents = [
             match[0] if match[1] == player else match[1]
-            for round_results in x[:(len(x)-1)]
-            for match in round_results.keys()
-            if player in match and "bye" not in match
+            for round_results in x
+            for match, result in round_results.items()
+            if player in match and "bye" not in match and result != (-1, -1)
         ]
         if not opponents:
-            standings[player]["omw"] = 1.0
+            standings[player]["omw"] = 0
         else:
             standings[player]["omw"] = mean(
                 standings[opponent]["match_winrate"] for opponent in opponents
             )
 
+    # Calculate game winrate (GW)
+    for player in get_players(event_id):
+        p = standings[player]
+        if p["games_played"] == 0:
+            standings[player]["gw"] = -100
+        else:
+            standings[player]["gw"] = max(
+                0.333, p["games_won"] / p["games_played"]
+            )
+
+    # Calculate opponent game winrate (OGW)
+    for player in get_players(event_id):
+        opponents = [
+            match[0] if match[1] == player else match[1]
+            for round_results in x
+            for match, result in round_results.items()
+            if player in match and "bye" not in match and result != (-1, -1)
+        ]
+        if not opponents:
+            standings[player]["ogw"] = 0
+        else:
+            standings[player]["ogw"] = mean(
+                standings[opponent]["gw"] for opponent in opponents
+            )
+
     # Sort standings by points and OMW
     standings = [{"name": player, **stats} for player, stats in standings.items()]
-    standings.sort(key=lambda x: (-x["points"], -x["omw"]))
+    standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
     return standings
 
 
@@ -118,11 +139,6 @@ def new_round(event_id):
     pairing_history = {
         frozenset(match) for round_results in x for match in round_results
     }
-
-    # Add a dummy player for the bye if there is an odd number of players
-    if len(players) % 2 == 1:
-        players.append("bye")
-        standings.append({"name": "bye", "points": 0})
 
     # Create a graph
     G = nx.Graph()
@@ -143,10 +159,18 @@ def new_round(event_id):
     # Convert matching to pairings
     pairings = list(matching)
 
+    def prefill(p1, p2):
+        if p1 == "bye":
+            return (0, 2)
+        elif p2 == "bye":
+            return (2, 0)
+        else:
+            return (-1, -1)
+
     # Add current pairings to x
     x.append(
         OrderedDict(
-            ((p1, p2), (-1, -1) if p2 != "bye" else (2, 0)) for p1, p2 in pairings
+            ((p1, p2), prefill(p1, p2)) for p1, p2 in pairings
         )
     )
 
@@ -217,7 +241,7 @@ def add_player(event_id):
     name = request.form.get("name")
     name = re.sub(r"[^A-Za-z]", "_", name)
     if name not in get_players(event_id) and len(events[event_id]["x"]) == 1:
-        events[event_id]["x"][0] = make_round_result(get_players(event_id) + [name])
+        events[event_id]["x"][0] = make_round_result(get_players_no_bye(event_id) + [name])
         return redirect(
             url_for("draft_seating_highlight", event_id=event_id, name=name)
         )
@@ -228,7 +252,7 @@ def add_player(event_id):
 @app.route("/<int:event_id>/player/<name>")
 def player(event_id, name):
     if name not in get_players(event_id):
-        return redirect(url_for("index", event_id=event_id))
+        return redirect(url_for("new_player", event_id=event_id))
 
     match = next(
         (
@@ -277,7 +301,7 @@ def submit_result(event_id):
 def draft_seating(event_id):
     return render_template(
         "draft_seating.html",
-        players=get_players(event_id),
+        players=get_players_no_bye(event_id),
         highlight=None,
         event_id=event_id,
     )
@@ -289,7 +313,7 @@ def draft_seating_highlight(event_id, name):
         return redirect(url_for("draft_seating", event_id=event_id))
     return render_template(
         "draft_seating.html",
-        players=get_players(event_id),
+        players=get_players_no_bye(event_id),
         highlight=name,
         event_id=event_id,
     )
