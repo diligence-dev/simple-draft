@@ -76,9 +76,9 @@ def calculate_standings(event_id):
     for player in get_players(event_id):
         p = standings[player]
         if p["matches_played"] == 0:
-            standings[player]["match_winrate"] = -100
+            standings[player]["mw"] = -100
         else:
-            standings[player]["match_winrate"] = max(
+            standings[player]["mw"] = max(
                 0.333, p["points"] / (3 * p["matches_played"])
             )
 
@@ -95,7 +95,7 @@ def calculate_standings(event_id):
             standings[player]["omw"] = 0
         else:
             standings[player]["omw"] = mean(
-                standings[opponent]["match_winrate"] for opponent in opponents
+                standings[opponent]["mw"] for opponent in opponents
             )
 
     # Calculate game winrate (GW)
@@ -186,6 +186,7 @@ def index(event_id):
         standings=calculate_standings(event_id),
         round_number=len(events[event_id]["x"]),
         event_id=event_id,
+        round_results=[(p1, p2, s1, s2) for round_result in events[event_id]["x"] for (p1, p2), (s1, s2) in round_result.items()],
     )
 
 
