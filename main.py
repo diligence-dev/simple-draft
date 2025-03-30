@@ -5,6 +5,8 @@ from statistics import mean
 import re
 import networkx as nx
 import copy
+import pickle
+from datetime import datetime
 
 port = 5000
 
@@ -29,8 +31,15 @@ events[0] = {"x": [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])],
 
 
 def save_state(event_id):
-    events[event_id]["previous_states"].append(copy.deepcopy(events[event_id]["x"]))
+    x = copy.deepcopy(events[event_id]["x"])
+    events[event_id]["previous_states"].append(x)
+    with open(f"{datetime.now().isoformat()}_{event_id}.pickle", "wb") as f:
+        pickle.dump(x, f)
 
+def load_state_from_file(event_id, filename):
+    events[event_id]["previous_states"].append(events[event_id]["x"])
+    with open(filename, "rb") as f:
+        events[event_id]["x"] = pickle.load(f)
 
 def get_players(event_id):
     x = events[event_id]["x"]
@@ -82,7 +91,6 @@ def calculate_standings(event_id):
                 0.333, p["points"] / (3 * p["matches_played"])
             )
 
-# TODO check omw
     # Calculate opponent match winrate (OMW)
     for player in get_players(event_id):
         opponents = [
@@ -281,11 +289,11 @@ def player(event_id, name):
 @app.route("/<int:event_id>/submit_result", methods=["POST"])
 def submit_result(event_id):
     save_state(event_id)
-    p1 = request.form.get(f"p1")
-    p2 = request.form.get(f"p2")
-    p1_games_won = request.form.get(f"p1_games_won")
-    p2_games_won = request.form.get(f"p2_games_won")
-    submitting_player = request.form.get(f"submitting_player")
+    p1 = request.form.get("p1")
+    p2 = request.form.get("p2")
+    p1_games_won = request.form.get("p1_games_won")
+    p2_games_won = request.form.get("p2_games_won")
+    submitting_player = request.form.get("submitting_player")
 
     if (
         p1_games_won in ["0", "1", "2"]
@@ -324,6 +332,13 @@ def draft_seating_highlight(event_id, name):
 def undo(event_id):
     if events[event_id]["previous_states"]:
         events[event_id]["x"] = events[event_id]["previous_states"].pop()
+    return redirect(url_for("index", event_id=event_id))
+
+
+@app.route("/<int:event_id>/load_state", methods=["POST"])
+def load_state(event_id):
+    filename = request.form.get("filename")
+    load_state_from_file(event_id, filename)
     return redirect(url_for("index", event_id=event_id))
 
 
