@@ -150,11 +150,13 @@
         <script>
             canvas = document.getElementById("qrcode")
             canvasWidth = canvas.getBoundingClientRect().width;
-            QRCode.toCanvas(
-                canvas,
-                "{{ url }}/{{ event_id }}/new_player",
-                { width: canvasWidth }
-            );
+            if ("{{ url }}" != "") {
+                QRCode.toCanvas(
+                    canvas,
+                    "{{ url }}/{{ event_id }}/new_player",
+                    { width: canvasWidth }
+                );
+            }
         </script>
     </div>
 </body>
