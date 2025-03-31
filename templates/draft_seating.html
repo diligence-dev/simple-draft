@@ -11,7 +11,7 @@
             padding: 0;
         }
         .container {
-            max-width: 800px;
+            max-width: 15cm;
             margin: auto;
         }
         h1 {
@@ -30,18 +30,43 @@
         .highlight {
             background-color: #ffff99;
         }
+        a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            margin: 0 0 20px 0;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>Draft Seating</h1>
-        <div>Wait until all players joined, then reload this page</div>
+        <div>Others can join via QR below. Everyone joined? Reload to show seatings.</div>
         <ul>
             {% for player in players %}
                 <li class="{% if player == highlight %}highlight{% endif %}">{{ loop.index }}. {{ player }}</li>
             {% endfor %}
         </ul>
+        {% if player == highlight %}
         <a href="/{{ event_id }}/player/{{ highlight }}">draft is done, continue to matches</a>
+        {% endif %}
+
+        <canvas id="qrcode" style="width: 100%;"></canvas>
+        <script>
+            canvas = document.getElementById("qrcode")
+            canvasWidth = canvas.getBoundingClientRect().width;
+            QRCode.toCanvas(
+                canvas,
+                "{{ url }}/{{ event_id }}/new_player",
+                { width: canvasWidth }
+            );
+        </script>
     </div>
 </body>
 </html>

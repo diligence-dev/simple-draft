@@ -59,6 +59,7 @@
             box-sizing: border-box;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -142,9 +143,19 @@
         <a href="/{{ event_id }}/undo">undo</a><br>
 
         <form method="POST" action="/{{ event_id }}/qr" class="form-group">
-            <input type="text" name="url" id="url" required>
-            <button type="submit">Show QR Code</button>
+            <input type="text" name="url" id="url" value="{{ url }}" required>
+            <button type="submit">Set url for QR Code</button>
         </form>
+        <canvas id="qrcode" style="width: 100%;"></canvas>
+        <script>
+            canvas = document.getElementById("qrcode")
+            canvasWidth = canvas.getBoundingClientRect().width;
+            QRCode.toCanvas(
+                canvas,
+                "{{ url }}/{{ event_id }}/new_player",
+                { width: canvasWidth }
+            );
+        </script>
     </div>
 </body>
 </html>

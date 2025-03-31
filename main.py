@@ -29,6 +29,8 @@ events = defaultdict(
 )
 events["0"] = {"x": [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])], "previous_states": []}
 
+# for QR code, must be set once
+url = ""
 
 def save_state(event_id):
     x = copy.deepcopy(events[event_id]["x"])
@@ -198,16 +200,15 @@ def index(event_id):
         round_number=len(events[event_id]["x"]),
         event_id=event_id,
         round_results=[(p1, p2, s1, s2) for round_result in events[event_id]["x"] for (p1, p2), (s1, s2) in round_result.items()],
+        url=url,
     )
 
 
 @app.route("/<event_id>/qr", methods=["POST"])
 def qr(event_id):
+    global url
     url = request.form.get("url")
-    return render_template(
-        "qr.html", url=f"{url}/{event_id}/new_player",
-        players=get_players(event_id)
-    )
+    return redirect(url_for("index", event_id=event_id))
 
 
 @app.route("/<event_id>/shuffle_seatings", methods=["POST"])
@@ -317,6 +318,7 @@ def draft_seating(event_id):
         players=get_players_no_bye(event_id),
         highlight=None,
         event_id=event_id,
+        url=url,
     )
 
 
@@ -329,6 +331,7 @@ def draft_seating_highlight(event_id, name):
         players=get_players_no_bye(event_id),
         highlight=name,
         event_id=event_id,
+        url=url,
     )
 
 
