@@ -38,8 +38,11 @@ def save_state(event_id):
 
 def load_state_from_file(event_id, filename):
     events[event_id]["previous_states"].append(events[event_id]["x"])
-    with open(filename, "rb") as f:
-        events[event_id]["x"] = pickle.load(f)
+    try:
+        with open(filename, "rb") as f:
+            events[event_id]["x"] = pickle.load(f)
+    except (FileNotFoundError, pickle.UnpicklingError) as e:
+        print(f"Error loading state from file '{filename}': {e}")
 
 def get_players(event_id):
     x = events[event_id]["x"]
