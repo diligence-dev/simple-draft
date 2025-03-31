@@ -27,7 +27,7 @@ def make_round_result(players):
 events = defaultdict(
     lambda: {"x": [make_round_result([])], "previous_states": []}
 )
-events[0] = {"x": [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])], "previous_states": []}
+events["0"] = {"x": [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])], "previous_states": []}
 
 
 def save_state(event_id):
@@ -187,7 +187,7 @@ def new_round(event_id):
 
 
 # Routes
-@app.route("/<int:event_id>/")
+@app.route("/<event_id>/")
 def index(event_id):
     return render_template(
         "index.html",
@@ -201,15 +201,16 @@ def index(event_id):
     )
 
 
-@app.route("/<int:event_id>/qr", methods=["POST"])
+@app.route("/<event_id>/qr", methods=["POST"])
 def qr(event_id):
     url = request.form.get("url")
     return render_template(
-        "qr.html", url=f"{url}new_player", players=get_players(event_id)
+        "qr.html", url=f"{url}/{event_id}/new_player",
+        players=get_players(event_id)
     )
 
 
-@app.route("/<int:event_id>/shuffle_seatings", methods=["POST"])
+@app.route("/<event_id>/shuffle_seatings", methods=["POST"])
 def shuffle_seatings(event_id):
     save_state(event_id)
     x = events[event_id]["x"]
@@ -220,7 +221,7 @@ def shuffle_seatings(event_id):
     return redirect(url_for("index", event_id=event_id))
 
 
-@app.route("/<int:event_id>/submit_results", methods=["POST"])
+@app.route("/<event_id>/submit_results", methods=["POST"])
 def submit_results(event_id):
     save_state(event_id)
     for i, (p1, p2) in enumerate(get_pairing(event_id)):
@@ -235,7 +236,7 @@ def submit_results(event_id):
 
 
 # player interface
-@app.route("/<int:event_id>/new_player")
+@app.route("/<event_id>/new_player")
 def new_player(event_id):
     name = request.args.get("name")
     error_message = None if not name else f"Player '{name}' already exists"
@@ -247,7 +248,7 @@ def new_player(event_id):
     )
 
 
-@app.route("/<int:event_id>/add_player", methods=["POST"])
+@app.route("/<event_id>/add_player", methods=["POST"])
 def add_player(event_id):
     save_state(event_id)
     name = request.form.get("name")
@@ -261,7 +262,7 @@ def add_player(event_id):
         return redirect(url_for("new_player", event_id=event_id, name=name))
 
 
-@app.route("/<int:event_id>/player/<name>")
+@app.route("/<event_id>/player/<name>")
 def player(event_id, name):
     if name not in get_players(event_id):
         return redirect(url_for("new_player", event_id=event_id))
@@ -289,7 +290,7 @@ def player(event_id, name):
     )
 
 
-@app.route("/<int:event_id>/submit_result", methods=["POST"])
+@app.route("/<event_id>/submit_result", methods=["POST"])
 def submit_result(event_id):
     save_state(event_id)
     p1 = request.form.get("p1")
@@ -309,7 +310,7 @@ def submit_result(event_id):
     return redirect(url_for("player", event_id=event_id, name=submitting_player))
 
 
-@app.route("/<int:event_id>/draft_seating")
+@app.route("/<event_id>/draft_seating")
 def draft_seating(event_id):
     return render_template(
         "draft_seating.html",
@@ -319,7 +320,7 @@ def draft_seating(event_id):
     )
 
 
-@app.route("/<int:event_id>/draft_seating/<name>")
+@app.route("/<event_id>/draft_seating/<name>")
 def draft_seating_highlight(event_id, name):
     if name not in get_players(event_id):
         return redirect(url_for("draft_seating", event_id=event_id))
@@ -331,14 +332,14 @@ def draft_seating_highlight(event_id, name):
     )
 
 
-@app.route("/<int:event_id>/undo")
+@app.route("/<event_id>/undo")
 def undo(event_id):
     if events[event_id]["previous_states"]:
         events[event_id]["x"] = events[event_id]["previous_states"].pop()
     return redirect(url_for("index", event_id=event_id))
 
 
-@app.route("/<int:event_id>/load_state", methods=["POST"])
+@app.route("/<event_id>/load_state", methods=["POST"])
 def load_state(event_id):
     filename = request.form.get("filename")
     load_state_from_file(event_id, filename)
