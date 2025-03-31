@@ -38,11 +38,17 @@
             background-color: #0056b3;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>Scan the QR code to join</h1>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data={{ url }}" alt="QR Code">
+        <canvas id="qrcode"></canvas>
+        <script>
+            QRCode.toCanvas(document.getElementById('qrcode'), "{{ url }}", {
+                width: 600
+            });
+        </script>
 
         <h2>Current Players</h2>
         <ul>
