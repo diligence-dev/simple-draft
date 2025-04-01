@@ -12,6 +12,7 @@ port = 5000
 
 app = Flask(__name__)
 
+
 def make_round_result(players):
     if len(players) % 2 == 1:
         players.append("bye")
@@ -23,20 +24,173 @@ def make_round_result(players):
     return round_results
 
 
+class Tournament:
+    def __init__(self, players):
+        self._round_results = [make_round_result(players)]
+        self._dropped_players = []  # TODO implement dropping
+
+    def get_round_results(self):
+        return self._round_results
+
+    def get_players(self):
+        players = self._round_results[0].keys()
+        return [p1 for p1, _ in players] + [p2 for _, p2 in players]
+
+    def get_players_no_bye(self):
+        return [p for p in self.get_players() if p != "bye"]
+
+    def get_pairing(self):
+        return list(self._round_results[-1].keys())
+
+    def get_pairing_with_score(self):
+        return self._round_results[-1].items()
+
+    def get_round_number(self):
+        return len(self._round_results)
+
+    def get_standings(self):
+        standings = {
+            player: {
+                "points": 0,
+                "games_won": 0,
+                "games_played": 0,
+                "matches_played": 0,
+            }
+            for player in self.get_players()
+        }
+
+        for round_results in self._round_results:
+            for (p1, p2), (p1_games_won, p2_games_won) in round_results.items():
+                if p1_games_won not in [0, 1, 2] or p2_games_won not in [0, 1, 2]:
+                    continue
+                if p1_games_won > p2_games_won:
+                    standings[p1]["points"] += 3
+                elif p1_games_won == p2_games_won:
+                    standings[p1]["points"] += 1
+                    standings[p2]["points"] += 1
+                else:
+                    standings[p2]["points"] += 3
+                standings[p1]["games_won"] += p1_games_won
+                standings[p2]["games_won"] += p2_games_won
+                standings[p1]["games_played"] += p1_games_won + p2_games_won
+                standings[p2]["games_played"] += p1_games_won + p2_games_won
+                standings[p1]["matches_played"] += 1
+                standings[p2]["matches_played"] += 1
+
+        # Calculate player match winrate
+        for player in self.get_players():
+            p = standings[player]
+            if p["matches_played"] == 0:
+                standings[player]["mw"] = -100
+            else:
+                standings[player]["mw"] = max(
+                    0.333, p["points"] / (3 * p["matches_played"])
+                )
+
+        # Calculate opponent match winrate (OMW)
+        for player in self.get_players():
+            opponents = [
+                match[0] if match[1] == player else match[1]
+                for round_results in self._round_results
+                for match, result in round_results.items()
+                if player in match and "bye" not in match and result != (-1, -1)
+            ]
+            if not opponents:
+                standings[player]["omw"] = 0
+            else:
+                standings[player]["omw"] = mean(
+                    standings[opponent]["mw"] for opponent in opponents
+                )
+
+        # Calculate game winrate (GW)
+        for player in self.get_players():
+            p = standings[player]
+            if p["games_played"] == 0:
+                standings[player]["gw"] = -100
+            else:
+                standings[player]["gw"] = max(0.333, p["games_won"] / p["games_played"])
+
+        # Calculate opponent game winrate (OGW)
+        for player in self.get_players():
+            opponents = [
+                match[0] if match[1] == player else match[1]
+                for round_results in self._round_results
+                for match, result in round_results.items()
+                if player in match and "bye" not in match and result != (-1, -1)
+            ]
+            if not opponents:
+                standings[player]["ogw"] = 0
+            else:
+                standings[player]["ogw"] = mean(
+                    standings[opponent]["gw"] for opponent in opponents
+                )
+
+        # Sort standings by points and OMW
+        standings = [{"name": player, **stats} for player, stats in standings.items()]
+        standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
+        return standings
+
+    def mod_new_round(self):
+        # Swiss pairing using maximum weight matching
+        standings = self.get_standings()
+        players = [p["name"] for p in standings]  # in standings order
+        pairing_history = {
+            frozenset(match)
+            for round_results in self._round_results
+            for match in round_results
+        }
+
+        G = nx.Graph()
+        G.add_nodes_from(players)
+
+        # Add edges with weights based on points
+        for i, p1 in enumerate(players):
+            for p2 in players[i + 1 :]:
+                if frozenset({p1, p2}) not in pairing_history:
+                    score_diff = abs(
+                        standings[i]["points"] - standings[players.index(p2)]["points"]
+                    )
+                    G.add_edge(p1, p2, weight=-score_diff * score_diff)
+
+        pairings = list(nx.max_weight_matching(G, maxcardinality=True))
+
+        def prefill(p1, p2):
+            if p1 == "bye":
+                return (0, 2)
+            elif p2 == "bye":
+                return (2, 0)
+            else:
+                return (-1, -1)
+
+        # Add current pairings to x
+        self._round_results.append(
+            OrderedDict(((p1, p2), prefill(p1, p2)) for p1, p2 in pairings)
+        )
+
+
 # Dictionary to store state for each event
-events = defaultdict(
-    lambda: {"x": [make_round_result([])], "previous_states": []}
-)
-events["0"] = {"x": [make_round_result(["a", "b", "c", "d", "e", "f", "g", "h"])], "previous_states": []}
+events = defaultdict(lambda: {"x": Tournament([]), "previous_states": []})
+events["0"] = {
+    "x": Tournament(["a", "b", "c", "d", "e", "f", "g", "h"]),
+    "previous_states": [],
+}
+
+
+# event id to Tournament
+def id2t(event_id):
+    return events[event_id]["x"]
+
 
 # for QR code, must be set once
 url = ""
+
 
 def save_state(event_id):
     x = copy.deepcopy(events[event_id]["x"])
     events[event_id]["previous_states"].append(x)
     with open(f"{datetime.now().isoformat()}_{event_id}.pickle", "wb") as f:
         pickle.dump(x, f)
+
 
 def load_state_from_file(event_id, filename):
     events[event_id]["previous_states"].append(events[event_id]["x"])
@@ -46,160 +200,23 @@ def load_state_from_file(event_id, filename):
     except (FileNotFoundError, pickle.UnpicklingError) as e:
         print(f"Error loading state from file '{filename}': {e}")
 
-def get_players(event_id):
-    x = events[event_id]["x"]
-    return [p1 for p1, _ in x[0].keys()] + [p2 for _, p2 in x[0].keys()]
-
-def get_players_no_bye(event_id):
-    return [p for p in get_players(event_id) if p != "bye"]
-
-def get_pairing(event_id):
-    return list(events[event_id]["x"][-1].keys())
-
-
-def get_pairing_with_score(event_id):
-    return events[event_id]["x"][-1].items()
-
-
-def calculate_standings(event_id):
-    x = events[event_id]["x"]
-    standings = {
-        player: {"points": 0, "games_won": 0, "games_played": 0, "matches_played": 0}
-        for player in get_players(event_id)
-    }
-
-    for round_results in x:
-        for (p1, p2), (p1_games_won, p2_games_won) in round_results.items():
-            if p1_games_won not in [0, 1, 2] or p2_games_won not in [0, 1, 2]:
-                continue
-            if p1_games_won > p2_games_won:
-                standings[p1]["points"] += 3
-            elif p1_games_won == p2_games_won:
-                standings[p1]["points"] += 1
-                standings[p2]["points"] += 1
-            else:
-                standings[p2]["points"] += 3
-            standings[p1]["games_won"] += p1_games_won
-            standings[p2]["games_won"] += p2_games_won
-            standings[p1]["games_played"] += p1_games_won + p2_games_won
-            standings[p2]["games_played"] += p1_games_won + p2_games_won
-            standings[p1]["matches_played"] += 1
-            standings[p2]["matches_played"] += 1
-
-    # Calculate player match winrate
-    for player in get_players(event_id):
-        p = standings[player]
-        if p["matches_played"] == 0:
-            standings[player]["mw"] = -100
-        else:
-            standings[player]["mw"] = max(
-                0.333, p["points"] / (3 * p["matches_played"])
-            )
-
-    # Calculate opponent match winrate (OMW)
-    for player in get_players(event_id):
-        opponents = [
-            match[0] if match[1] == player else match[1]
-            for round_results in x
-            for match, result in round_results.items()
-            if player in match and "bye" not in match and result != (-1, -1)
-        ]
-        if not opponents:
-            standings[player]["omw"] = 0
-        else:
-            standings[player]["omw"] = mean(
-                standings[opponent]["mw"] for opponent in opponents
-            )
-
-    # Calculate game winrate (GW)
-    for player in get_players(event_id):
-        p = standings[player]
-        if p["games_played"] == 0:
-            standings[player]["gw"] = -100
-        else:
-            standings[player]["gw"] = max(
-                0.333, p["games_won"] / p["games_played"]
-            )
-
-    # Calculate opponent game winrate (OGW)
-    for player in get_players(event_id):
-        opponents = [
-            match[0] if match[1] == player else match[1]
-            for round_results in x
-            for match, result in round_results.items()
-            if player in match and "bye" not in match and result != (-1, -1)
-        ]
-        if not opponents:
-            standings[player]["ogw"] = 0
-        else:
-            standings[player]["ogw"] = mean(
-                standings[opponent]["gw"] for opponent in opponents
-            )
-
-    # Sort standings by points and OMW
-    standings = [{"name": player, **stats} for player, stats in standings.items()]
-    standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
-    return standings
-
-
-def new_round(event_id):
-    save_state(event_id)
-    x = events[event_id]["x"]
-
-    # Swiss pairing using maximum weight matching
-    standings = calculate_standings(event_id)
-    players = [p["name"] for p in standings]  # in standings order
-    pairing_history = {
-        frozenset(match) for round_results in x for match in round_results
-    }
-
-    # Create a graph
-    G = nx.Graph()
-    G.add_nodes_from(players)
-
-    # Add edges with weights based on points
-    for i, p1 in enumerate(players):
-        for p2 in players[i + 1 :]:
-            if frozenset({p1, p2}) not in pairing_history:
-                score_diff = abs(
-                    standings[i]["points"] - standings[players.index(p2)]["points"]
-                )
-                G.add_edge(p1, p2, weight=-score_diff*score_diff)
-
-    # Find the maximum weight matching
-    matching = nx.max_weight_matching(G, maxcardinality=True)
-
-    # Convert matching to pairings
-    pairings = list(matching)
-
-    def prefill(p1, p2):
-        if p1 == "bye":
-            return (0, 2)
-        elif p2 == "bye":
-            return (2, 0)
-        else:
-            return (-1, -1)
-
-    # Add current pairings to x
-    x.append(
-        OrderedDict(
-            ((p1, p2), prefill(p1, p2)) for p1, p2 in pairings
-        )
-    )
-
 
 # Routes
 @app.route("/<event_id>/")
 def index(event_id):
     return render_template(
         "index.html",
-        players=get_players(event_id),
-        pairing=get_pairing(event_id),
-        pairing_with_score=get_pairing_with_score(event_id),
-        standings=calculate_standings(event_id),
-        round_number=len(events[event_id]["x"]),
+        players=id2t(event_id).get_players(),
+        pairing=id2t(event_id).get_pairing(),
+        pairing_with_score=id2t(event_id).get_pairing_with_score(),
+        standings=id2t(event_id).get_standings(),
+        round_number=id2t(event_id).get_round_number(),
         event_id=event_id,
-        round_results=[(p1, p2, s1, s2) for round_result in events[event_id]["x"] for (p1, p2), (s1, s2) in round_result.items()],
+        round_results=[
+            (p1, p2, s1, s2)
+            for round_result in id2t(event_id).get_round_results()
+            for (p1, p2), (s1, s2) in round_result.items()
+        ],
         url=url,
     )
 
@@ -217,7 +234,7 @@ def shuffle_seatings(event_id):
     x = events[event_id]["x"]
     assert len(x) == 1
     x[0] = make_round_result(
-        random.sample(get_players(event_id), len(get_players(event_id)))
+        random.sample(id2t(event_id).get_players(), len(id2t(event_id).get_players()))
     )
     return redirect(url_for("index", event_id=event_id))
 
@@ -225,14 +242,15 @@ def shuffle_seatings(event_id):
 @app.route("/<event_id>/submit_results", methods=["POST"])
 def submit_results(event_id):
     save_state(event_id)
-    for i, (p1, p2) in enumerate(get_pairing(event_id)):
+    for i, (p1, p2) in enumerate(id2t(event_id).get_pairing()):
         p1_games_won = int(request.form.get(f"p1_games_won_{i+1}"))
         p2_games_won = int(request.form.get(f"p2_games_won_{i+1}"))
 
         if p1_games_won in [0, 1, 2] and p2_games_won in [0, 1, 2]:
             events[event_id]["x"][-1][(p1, p2)] = (p1_games_won, p2_games_won)
 
-    new_round(event_id)
+    save_state(event_id)
+    id2t(event_id).mod_new_round()
     return redirect(url_for("index", event_id=event_id))
 
 
@@ -244,7 +262,7 @@ def new_player(event_id):
     return render_template(
         "new_player.html",
         error_message=error_message,
-        players=get_players(event_id),
+        players=id2t(event_id).get_players(),
         event_id=event_id,
     )
 
@@ -254,8 +272,10 @@ def add_player(event_id):
     save_state(event_id)
     name = request.form.get("name")
     name = re.sub(r"[^A-Za-z]", "_", name)
-    if name not in get_players(event_id) and len(events[event_id]["x"]) == 1:
-        events[event_id]["x"][0] = make_round_result(get_players_no_bye(event_id) + [name])
+    if name not in id2t(event_id).get_players() and len(events[event_id]["x"]) == 1:
+        events[event_id]["x"][0] = make_round_result(
+            id2t(event_id).get_players_no_bye() + [name]
+        )
         return redirect(
             url_for("draft_seating_highlight", event_id=event_id, name=name)
         )
@@ -265,13 +285,13 @@ def add_player(event_id):
 
 @app.route("/<event_id>/player/<name>")
 def player(event_id, name):
-    if name not in get_players(event_id):
+    if name not in id2t(event_id).get_players():
         return redirect(url_for("new_player", event_id=event_id))
 
     match = next(
         (
             (p1, p2, s1, s2)
-            for (p1, p2), (s1, s2) in get_pairing_with_score(event_id)
+            for (p1, p2), (s1, s2) in id2t(event_id).get_pairing_with_score()
             if name in (p1, p2)
         ),
         None,
@@ -286,7 +306,7 @@ def player(event_id, name):
         s1=match[2],
         s2=match[3],
         name=name,
-        standings=calculate_standings(event_id),
+        standings=id2t(event_id).get_standings(),
         event_id=event_id,
     )
 
@@ -304,7 +324,7 @@ def submit_result(event_id):
         p1_games_won in ["0", "1", "2"]
         and p2_games_won in ["0", "1", "2"]
         and (p1_games_won != "2" or p2_games_won != "2")
-        and (p1, p2) in events[event_id]["x"][-1].keys()
+        and (p1, p2) in id2t(event_id).get_pairing()
     ):
         events[event_id]["x"][-1][(p1, p2)] = (int(p1_games_won), int(p2_games_won))
 
@@ -315,7 +335,7 @@ def submit_result(event_id):
 def draft_seating(event_id):
     return render_template(
         "draft_seating.html",
-        players=get_players_no_bye(event_id),
+        players=id2t(event_id).get_players_no_bye(),
         highlight=None,
         event_id=event_id,
         url=url,
@@ -324,11 +344,11 @@ def draft_seating(event_id):
 
 @app.route("/<event_id>/draft_seating/<name>")
 def draft_seating_highlight(event_id, name):
-    if name not in get_players(event_id):
+    if name not in id2t(event_id).get_players():
         return redirect(url_for("draft_seating", event_id=event_id))
     return render_template(
         "draft_seating.html",
-        players=get_players_no_bye(event_id),
+        players=id2t(event_id).get_players_no_bye(),
         highlight=name,
         event_id=event_id,
         url=url,
