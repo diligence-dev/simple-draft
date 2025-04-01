@@ -136,15 +136,15 @@ class Tournament:
     def mod_submit_results_and_create_pairing(self, round_result):
         if list(round_result.keys()) != self.get_pairing():
             warn("wrong pairing")
-            return None
+            return False
         elif any(
             a not in (0, 1, 2) or b not in (0, 1, 2) for a, b in round_result.values()
         ):
             warn("games won not in (0, 1, 2)")
-            return None
+            return False
         elif any(a + b > 3 for a, b in round_result.values()):
             warn("total games > 3")
-            return None
+            return False
 
         self._round_results[-1] = round_result
 
@@ -183,26 +183,26 @@ class Tournament:
         self._round_results.append(
             OrderedDict(((p1, p2), prefill(p1, p2)) for p1, p2 in pairings)
         )
+        return True
 
     def mod_shuffle_seatings(self):
         if self.get_round() != 1:
             warn("n rounds != 1, won't shuffle seatings")
-            return None
+            return False
 
         self._round_results[0] = make_round_result(
             random.sample(self.get_players(), len(self.get_players()))
         )
+        return True
 
     def mod_add_player(self, name):
         print(f"adding {name}")
         name = re.sub(r"[^A-Za-z]", "_", name)
-        if name not in self.get_players() and self.get_round() == 1:
-            self._round_results[0] = make_round_result(
-                self.get_players_no_bye() + [name]
-            )
-            return True
-        else:
+        if name in self.get_players() or self.get_round() != 1:
             return False
+
+        self._round_results[0] = make_round_result(self.get_players_no_bye() + [name])
+        return True
 
 
 # Dictionary to store state for each event
