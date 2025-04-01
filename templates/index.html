@@ -67,7 +67,7 @@
         <h3>Round: {{ round_number }}</h3>
 
         <h2>Pairing and Submit Results</h2>
-        <form method="POST" action="/{{ event_id }}/submit_results" class="form-group">
+        <form method="POST" action="/{{ event_id }}/submit_results_and_create_pairing" class="form-group">
             <ul>
                 {% for (p1, p2), (s1, s2) in pairing_with_score %}
                     {% if p2 == 'bye' %}

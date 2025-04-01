@@ -137,16 +137,11 @@ class Tournament:
         if list(round_result.keys()) != self.get_pairing():
             warn("wrong pairing")
             return False
-        elif any(
-            a not in (0, 1, 2) or b not in (0, 1, 2) for a, b in round_result.values()
-        ):
-            warn("games won not in (0, 1, 2)")
-            return False
-        elif any(a + b > 3 for a, b in round_result.values()):
-            warn("total games > 3")
-            return False
 
-        self._round_results[-1] = round_result
+        for (p1, p2), (games_won_p1, games_won_p2) in round_result.items():
+            ok = self.mod_submit_result(p1, p2, games_won_p1, games_won_p2)
+            if not ok:
+                return False
 
         # Swiss pairing using maximum weight matching
         standings = self.get_standings()
@@ -204,16 +199,18 @@ class Tournament:
         return True
 
     def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
-        if (
-            p1_games_won in ["0", "1", "2"]
-            and p2_games_won in ["0", "1", "2"]
-            and (p1_games_won != "2" or p2_games_won != "2")
-            and (p1, p2) in self.get_pairing()
-        ):
-            self._round_results[-1][(p1, p2)] = (int(p1_games_won), int(p2_games_won))
-            return True
-        else:
+        if (p1, p2) not in self.get_pairing():
+            warn("not in pairing")
             return False
+        if p1_games_won not in (0, 1, 2) or p2_games_won not in (0, 1, 2):
+            warn("games won not in (0, 1, 2)")
+            return False
+        elif p1_games_won + p2_games_won > 3:
+            warn("total games > 3")
+            return False
+
+        self._round_results[-1][(p1, p2)] = (p1_games_won, p2_games_won)
+        return True
 
 
 # Dictionary to store state for each event
@@ -283,8 +280,8 @@ def shuffle_seatings(event_id):
     return redirect(url_for("index", event_id=event_id))
 
 
-@app.route("/<event_id>/submit_results", methods=["POST"])
-def submit_results(event_id):
+@app.route("/<event_id>/submit_results_and_create_pairing", methods=["POST"])
+def submit_results_and_create_pairing(event_id):
     save_state(event_id)
     round_result = {}
     for i, (p1, p2) in enumerate(id2t(event_id).get_pairing()):
@@ -314,8 +311,8 @@ def new_player(event_id):
 def add_player(event_id):
     save_state(event_id)
     name = request.form.get("name")
-    success = id2t(event_id).mod_add_player(name)
-    if success:
+    ok = id2t(event_id).mod_add_player(name)
+    if ok:
         return redirect(
             url_for("draft_seating_highlight", event_id=event_id, name=name)
         )
@@ -358,8 +355,8 @@ def submit_result(event_id):
     id2t(event_id).mod_submit_result(
         request.form.get("p1"),
         request.form.get("p2"),
-        request.form.get("p1_games_won"),
-        request.form.get("p2_games_won"),
+        int(request.form.get("p1_games_won")),
+        int(request.form.get("p2_games_won")),
     )
 
     submitting_player = request.form.get("submitting_player")
