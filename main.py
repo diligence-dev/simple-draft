@@ -7,6 +7,7 @@ import networkx as nx
 import copy
 import pickle
 from datetime import datetime
+from warnings import warn
 
 port = 5000
 
@@ -45,7 +46,7 @@ class Tournament:
     def get_pairing_with_score(self):
         return self._round_results[-1].items()
 
-    def get_round_number(self):
+    def get_number_of_current_round(self):
         return len(self._round_results)
 
     def get_standings(self):
@@ -130,7 +131,21 @@ class Tournament:
         standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
         return standings
 
-    def mod_new_round(self):
+    def mod_submit_results_and_create_pairing(self, round_result):
+        if list(round_result.keys()) != self.get_pairing():
+            warn("wrong pairing")
+            return None
+        elif any(
+            a not in (0, 1, 2) or b not in (0, 1, 2) for a, b in round_result.values()
+        ):
+            warn("games won not in (0, 1, 2)")
+            return None
+        elif any(a + b > 3 for a, b in round_result.values()):
+            warn("total games > 3")
+            return None
+
+        self._round_results[-1] = round_result
+
         # Swiss pairing using maximum weight matching
         standings = self.get_standings()
         players = [p["name"] for p in standings]  # in standings order
@@ -210,7 +225,7 @@ def index(event_id):
         pairing=id2t(event_id).get_pairing(),
         pairing_with_score=id2t(event_id).get_pairing_with_score(),
         standings=id2t(event_id).get_standings(),
-        round_number=id2t(event_id).get_round_number(),
+        round_number=id2t(event_id).get_number_of_current_round(),
         event_id=event_id,
         round_results=[
             (p1, p2, s1, s2)
@@ -242,15 +257,14 @@ def shuffle_seatings(event_id):
 @app.route("/<event_id>/submit_results", methods=["POST"])
 def submit_results(event_id):
     save_state(event_id)
+    round_result = {}
     for i, (p1, p2) in enumerate(id2t(event_id).get_pairing()):
         p1_games_won = int(request.form.get(f"p1_games_won_{i+1}"))
         p2_games_won = int(request.form.get(f"p2_games_won_{i+1}"))
+        round_result[(p1, p2)] = (p1_games_won, p2_games_won)
 
-        if p1_games_won in [0, 1, 2] and p2_games_won in [0, 1, 2]:
-            events[event_id]["x"][-1][(p1, p2)] = (p1_games_won, p2_games_won)
+    id2t(event_id).mod_submit_results_and_create_pairing(round_result)
 
-    save_state(event_id)
-    id2t(event_id).mod_new_round()
     return redirect(url_for("index", event_id=event_id))
 
 
