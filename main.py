@@ -27,7 +27,9 @@ def make_round_result(players):
 
 class Tournament:
     def __init__(self, players):
-        self._round_results = [make_round_result(players)]
+        self._round_results = [make_round_result([])]
+        for player in players:
+            self.mod_add_player(player)
         self._dropped_players = []  # TODO implement dropping
 
     def get_round_results(self):
@@ -46,7 +48,7 @@ class Tournament:
     def get_pairing_with_score(self):
         return self._round_results[-1].items()
 
-    def get_number_of_current_round(self):
+    def get_round(self):
         return len(self._round_results)
 
     def get_standings(self):
@@ -182,6 +184,26 @@ class Tournament:
             OrderedDict(((p1, p2), prefill(p1, p2)) for p1, p2 in pairings)
         )
 
+    def mod_shuffle_seatings(self):
+        if self.get_round() != 1:
+            warn("n rounds != 1, won't shuffle seatings")
+            return None
+
+        self._round_results[0] = make_round_result(
+            random.sample(self.get_players(), len(self.get_players()))
+        )
+
+    def mod_add_player(self, name):
+        print(f"adding {name}")
+        name = re.sub(r"[^A-Za-z]", "_", name)
+        if name not in self.get_players() and self.get_round() == 1:
+            self._round_results[0] = make_round_result(
+                self.get_players_no_bye() + [name]
+            )
+            return True
+        else:
+            return False
+
 
 # Dictionary to store state for each event
 events = defaultdict(lambda: {"x": Tournament([]), "previous_states": []})
@@ -225,7 +247,7 @@ def index(event_id):
         pairing=id2t(event_id).get_pairing(),
         pairing_with_score=id2t(event_id).get_pairing_with_score(),
         standings=id2t(event_id).get_standings(),
-        round_number=id2t(event_id).get_number_of_current_round(),
+        round_number=id2t(event_id).get_round(),
         event_id=event_id,
         round_results=[
             (p1, p2, s1, s2)
@@ -246,11 +268,7 @@ def qr(event_id):
 @app.route("/<event_id>/shuffle_seatings", methods=["POST"])
 def shuffle_seatings(event_id):
     save_state(event_id)
-    x = events[event_id]["x"]
-    assert len(x) == 1
-    x[0] = make_round_result(
-        random.sample(id2t(event_id).get_players(), len(id2t(event_id).get_players()))
-    )
+    id2t(event_id).mod_shuffle_seatings()
     return redirect(url_for("index", event_id=event_id))
 
 
@@ -285,11 +303,8 @@ def new_player(event_id):
 def add_player(event_id):
     save_state(event_id)
     name = request.form.get("name")
-    name = re.sub(r"[^A-Za-z]", "_", name)
-    if name not in id2t(event_id).get_players() and len(events[event_id]["x"]) == 1:
-        events[event_id]["x"][0] = make_round_result(
-            id2t(event_id).get_players_no_bye() + [name]
-        )
+    success = id2t(event_id).mod_add_player(name)
+    if success:
         return redirect(
             url_for("draft_seating_highlight", event_id=event_id, name=name)
         )
