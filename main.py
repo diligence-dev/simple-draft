@@ -196,13 +196,24 @@ class Tournament:
         return True
 
     def mod_add_player(self, name):
-        print(f"adding {name}")
         name = re.sub(r"[^A-Za-z]", "_", name)
         if name in self.get_players() or self.get_round() != 1:
             return False
 
         self._round_results[0] = make_round_result(self.get_players_no_bye() + [name])
         return True
+
+    def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
+        if (
+            p1_games_won in ["0", "1", "2"]
+            and p2_games_won in ["0", "1", "2"]
+            and (p1_games_won != "2" or p2_games_won != "2")
+            and (p1, p2) in self.get_pairing()
+        ):
+            self._round_results[-1][(p1, p2)] = (int(p1_games_won), int(p2_games_won))
+            return True
+        else:
+            return False
 
 
 # Dictionary to store state for each event
@@ -343,20 +354,15 @@ def player(event_id, name):
 @app.route("/<event_id>/submit_result", methods=["POST"])
 def submit_result(event_id):
     save_state(event_id)
-    p1 = request.form.get("p1")
-    p2 = request.form.get("p2")
-    p1_games_won = request.form.get("p1_games_won")
-    p2_games_won = request.form.get("p2_games_won")
+
+    id2t(event_id).mod_submit_result(
+        request.form.get("p1"),
+        request.form.get("p2"),
+        request.form.get("p1_games_won"),
+        request.form.get("p2_games_won"),
+    )
+
     submitting_player = request.form.get("submitting_player")
-
-    if (
-        p1_games_won in ["0", "1", "2"]
-        and p2_games_won in ["0", "1", "2"]
-        and (p1_games_won != "2" or p2_games_won != "2")
-        and (p1, p2) in id2t(event_id).get_pairing()
-    ):
-        events[event_id]["x"][-1][(p1, p2)] = (int(p1_games_won), int(p2_games_won))
-
     return redirect(url_for("player", event_id=event_id, name=submitting_player))
 
 
