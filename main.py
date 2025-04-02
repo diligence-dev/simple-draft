@@ -193,10 +193,10 @@ class Tournament:
     def mod_add_player(self, name):
         name = re.sub(r"[^A-Za-z]", "_", name)
         if name in self.get_players() or self.get_round() != 1:
-            return False
+            return ""
 
         self._round_results[0] = make_round_result(self.get_players_no_bye() + [name])
-        return True
+        return name
 
     def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
         if (p1, p2) not in self.get_pairing():
@@ -311,8 +311,8 @@ def new_player(event_id):
 def add_player(event_id):
     save_state(event_id)
     name = request.form.get("name")
-    ok = id2t(event_id).mod_add_player(name)
-    if ok:
+    name = id2t(event_id).mod_add_player(name)
+    if name != "":
         return redirect(
             url_for("draft_seating_highlight", event_id=event_id, name=name)
         )
