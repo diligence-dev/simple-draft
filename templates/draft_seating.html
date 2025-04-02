@@ -53,7 +53,7 @@
                 <li class="{% if player == highlight %}highlight{% endif %}">{{ loop.index }}. {{ player }}</li>
             {% endfor %}
         </ul>
-        {% if player == highlight %}
+        {% if highlight %}
         <a href="/{{ event_id }}/player/{{ highlight }}">draft is done, continue to matches</a>
         {% endif %}
 
