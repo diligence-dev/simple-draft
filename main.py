@@ -35,12 +35,12 @@ class Tournament:
     def get_round_results(self):
         return self._round_results
 
-    def get_players(self):
+    def get_all_players(self):
         players = self._round_results[0].keys()
         return [p1 for p1, _ in players] + [p2 for _, p2 in players]
 
     def get_players_no_bye(self):
-        return [p for p in self.get_players() if p != "bye"]
+        return [p for p in self.get_all_players() if p != "bye"]
 
     def get_pairing(self):
         return list(self._round_results[-1].keys())
@@ -59,7 +59,7 @@ class Tournament:
                 "games_played": 0,
                 "matches_played": 0,
             }
-            for player in self.get_players()
+            for player in self.get_all_players()
         }
 
         for round_results in self._round_results:
@@ -81,7 +81,7 @@ class Tournament:
                 standings[p2]["matches_played"] += 1
 
         # Calculate player match winrate
-        for player in self.get_players():
+        for player in self.get_all_players():
             p = standings[player]
             if p["matches_played"] == 0:
                 standings[player]["mw"] = -100
@@ -91,7 +91,7 @@ class Tournament:
                 )
 
         # Calculate opponent match winrate (OMW)
-        for player in self.get_players():
+        for player in self.get_all_players():
             opponents = [
                 match[0] if match[1] == player else match[1]
                 for round_results in self._round_results
@@ -106,7 +106,7 @@ class Tournament:
                 )
 
         # Calculate game winrate (GW)
-        for player in self.get_players():
+        for player in self.get_all_players():
             p = standings[player]
             if p["games_played"] == 0:
                 standings[player]["gw"] = -100
@@ -114,7 +114,7 @@ class Tournament:
                 standings[player]["gw"] = max(0.333, p["games_won"] / p["games_played"])
 
         # Calculate opponent game winrate (OGW)
-        for player in self.get_players():
+        for player in self.get_all_players():
             opponents = [
                 match[0] if match[1] == player else match[1]
                 for round_results in self._round_results
@@ -129,7 +129,7 @@ class Tournament:
                 )
 
         # Sort standings by points and OMW
-        standings = [{"name": player, **stats} for player, stats in standings.items()]
+        standings = [{"name": player, **stats} for player, stats in standings.items() if player != "bye"]
         standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
         return standings
 
@@ -186,17 +186,31 @@ class Tournament:
             return False
 
         self._round_results[0] = make_round_result(
-            random.sample(self.get_players(), len(self.get_players()))
+            random.sample(self.get_all_players(), len(self.get_all_players()))
         )
         return True
 
     def mod_add_player(self, name):
         name = re.sub(r"[^A-Za-z]", "_", name)
-        if name in self.get_players() or self.get_round() != 1:
+        if name in self.get_all_players() or self.get_round() != 1:
             return ""
 
         self._round_results[0] = make_round_result(self.get_players_no_bye() + [name])
         return name
+
+    def mod_drop_player(self, name):
+        if name not in self.get_all_players():
+            return False
+
+        if self.get_round() == 1:
+            self._round_results = [make_round_result([])]
+            for player in self.get_all_players():
+                if player != name:
+                    self.mod_add_player(player)
+            return True
+
+        self._dropped_players.append(name)
+        return True
 
     def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
         if (p1, p2) not in self.get_pairing():
@@ -216,7 +230,7 @@ class Tournament:
 # Dictionary to store state for each event
 events = defaultdict(lambda: {"x": Tournament([]), "previous_states": []})
 events["0"] = {
-    "x": Tournament(["a", "b", "c", "d", "e", "f", "g", "h"]),
+    "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),
     "previous_states": [],
 }
 
@@ -251,7 +265,7 @@ def load_state_from_file(event_id, filename):
 def index(event_id):
     return render_template(
         "index.html",
-        players=id2t(event_id).get_players(),
+        players=id2t(event_id).get_players_no_bye(),
         pairing=id2t(event_id).get_pairing(),
         pairing_with_score=id2t(event_id).get_pairing_with_score(),
         standings=id2t(event_id).get_standings(),
@@ -302,7 +316,7 @@ def new_player(event_id):
     return render_template(
         "new_player.html",
         error_message=error_message,
-        players=id2t(event_id).get_players(),
+        players=id2t(event_id).get_players_no_bye(),
         event_id=event_id,
     )
 
@@ -322,7 +336,7 @@ def add_player(event_id):
 
 @app.route("/<event_id>/player/<name>")
 def player(event_id, name):
-    if name not in id2t(event_id).get_players():
+    if name not in id2t(event_id).get_players_no_bye():
         return redirect(url_for("new_player", event_id=event_id))
 
     match = next(
@@ -376,7 +390,7 @@ def draft_seating(event_id):
 
 @app.route("/<event_id>/draft_seating/<name>")
 def draft_seating_highlight(event_id, name):
-    if name not in id2t(event_id).get_players():
+    if name not in id2t(event_id).get_players_no_bye():
         return redirect(url_for("draft_seating", event_id=event_id))
     return render_template(
         "draft_seating.html",
