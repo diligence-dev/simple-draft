@@ -51,7 +51,7 @@ class Tournament:
     def get_round(self):
         return len(self._round_results)
 
-    def get_standings(self):
+    def get_standings(self, include_bye=True):
         standings = {
             player: {
                 "points": 0,
@@ -129,7 +129,11 @@ class Tournament:
                 )
 
         # Sort standings by points and OMW
-        standings = [{"name": player, **stats} for player, stats in standings.items() if player != "bye"]
+        standings = [
+            {"name": player, **stats}
+            for player, stats in standings.items()
+            if player != "bye" or include_bye
+        ]
         standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
         return standings
 
@@ -268,7 +272,7 @@ def index(event_id):
         players=id2t(event_id).get_players_no_bye(),
         pairing=id2t(event_id).get_pairing(),
         pairing_with_score=id2t(event_id).get_pairing_with_score(),
-        standings=id2t(event_id).get_standings(),
+        standings=id2t(event_id).get_standings(include_bye=False),
         round_number=id2t(event_id).get_round(),
         event_id=event_id,
         round_results=[
@@ -357,7 +361,7 @@ def player(event_id, name):
         s1=match[2],
         s2=match[3],
         name=name,
-        standings=id2t(event_id).get_standings(),
+        standings=id2t(event_id).get_standings(include_bye=False),
         event_id=event_id,
     )
 
