@@ -275,6 +275,10 @@ def load_state_from_file(event_id, filename):
 
 
 # Routes
+@app.route("/")
+def index():
+    return render_template("index.html")
+
 @app.route("/<event_id>/")
 def tournament_organizer(event_id):
     return render_template(
