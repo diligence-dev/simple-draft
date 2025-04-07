@@ -276,9 +276,9 @@ def load_state_from_file(event_id, filename):
 
 # Routes
 @app.route("/<event_id>/")
-def index(event_id):
+def tournament_organizer(event_id):
     return render_template(
-        "index.html",
+        "tournament_organizer.html",
         players=id2t(event_id).get_players_no_bye(),
         pairing=id2t(event_id).get_pairing(),
         pairing_with_score=id2t(event_id).get_pairing_with_score(),
