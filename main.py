@@ -137,7 +137,7 @@ class Tournament:
         standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
         return standings
 
-    def mod_submit_results_and_create_pairing(self, round_result):
+    def mod_submit_results(self, round_result):
         if list(round_result.keys()) != self.get_pairing():
             warn("wrong pairing")
             return False
@@ -147,41 +147,6 @@ class Tournament:
             if not ok:
                 return False
 
-        # Swiss pairing using maximum weight matching
-        standings = self.get_standings()
-        players = [p["name"] for p in standings]  # in standings order
-        pairing_history = {
-            frozenset(match)
-            for round_results in self._round_results
-            for match in round_results
-        }
-
-        G = nx.Graph()
-        G.add_nodes_from(players)
-
-        # Add edges with weights based on points
-        for i, p1 in enumerate(players):
-            for p2 in players[i + 1 :]:
-                if frozenset({p1, p2}) not in pairing_history:
-                    score_diff = abs(
-                        standings[i]["points"] - standings[players.index(p2)]["points"]
-                    )
-                    G.add_edge(p1, p2, weight=-score_diff * score_diff)
-
-        pairings = list(nx.max_weight_matching(G, maxcardinality=True))
-
-        def prefill(p1, p2):
-            if p1 == "bye":
-                return (0, 2)
-            elif p2 == "bye":
-                return (2, 0)
-            else:
-                return (-1, -1)
-
-        # Add current pairings to x
-        self._round_results.append(
-            OrderedDict(((p1, p2), prefill(p1, p2)) for p1, p2 in pairings)
-        )
         return True
 
     def mod_shuffle_seatings(self):
@@ -228,6 +193,51 @@ class Tournament:
             return False
 
         self._round_results[-1][(p1, p2)] = (p1_games_won, p2_games_won)
+
+        if all(
+            s1 in (0, 1, 2) and s2 in (0, 1, 2)
+            for _, (s1, s2) in self.get_pairing_with_score()
+        ):
+            return self.mod_create_pairing()
+
+        return True
+
+    def mod_create_pairing(self):
+        # Swiss pairing using maximum weight matching
+        standings = self.get_standings()
+        players = [p["name"] for p in standings]  # in standings order
+        pairing_history = {
+            frozenset(match)
+            for round_results in self._round_results
+            for match in round_results
+        }
+
+        G = nx.Graph()
+        G.add_nodes_from(players)
+
+        # Add edges with weights based on points
+        for i, p1 in enumerate(players):
+            for p2 in players[i + 1 :]:
+                if frozenset({p1, p2}) not in pairing_history:
+                    score_diff = abs(
+                        standings[i]["points"] - standings[players.index(p2)]["points"]
+                    )
+                    G.add_edge(p1, p2, weight=-score_diff * score_diff)
+
+        pairings = list(nx.max_weight_matching(G, maxcardinality=True))
+
+        def prefill(p1, p2):
+            if p1 == "bye":
+                return (0, 2)
+            elif p2 == "bye":
+                return (2, 0)
+            else:
+                return (-1, -1)
+
+        # Add current pairings to x
+        self._round_results.append(
+            OrderedDict(((p1, p2), prefill(p1, p2)) for p1, p2 in pairings)
+        )
         return True
 
 
@@ -298,8 +308,8 @@ def shuffle_seatings(event_id):
     return redirect(url_for("index", event_id=event_id))
 
 
-@app.route("/<event_id>/submit_results_and_create_pairing", methods=["POST"])
-def submit_results_and_create_pairing(event_id):
+@app.route("/<event_id>/submit_results", methods=["POST"])
+def submit_results(event_id):
     save_state(event_id)
     round_result = {}
     for i, (p1, p2) in enumerate(id2t(event_id).get_pairing()):
@@ -307,7 +317,7 @@ def submit_results_and_create_pairing(event_id):
         p2_games_won = int(request.form.get(f"p2_games_won_{i+1}"))
         round_result[(p1, p2)] = (p1_games_won, p2_games_won)
 
-    id2t(event_id).mod_submit_results_and_create_pairing(round_result)
+    id2t(event_id).mod_submit_results(round_result)
 
     return redirect(url_for("index", event_id=event_id))
 
