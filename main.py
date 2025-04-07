@@ -251,7 +251,7 @@ url = ""
 def save_state(event_id):
     x = copy.deepcopy(events[event_id]["x"])
     events[event_id]["previous_states"].append(x)
-    with open(f"{datetime.now().isoformat()}_{event_id}.pickle", "wb") as f:
+    with open(f"pickles/{datetime.now().isoformat()}_{event_id}.pickle", "wb") as f:
         pickle.dump(x, f)
 
 
