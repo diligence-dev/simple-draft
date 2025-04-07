@@ -17,22 +17,24 @@
             max-width: 800px;
             margin: auto;
         }
-        button {
-            padding: 10px 15px;
+        a {
+            display: inline-block;
+            padding: 10px 20px;
             background-color: #007BFF;
             color: white;
-            border: none;
-            cursor: pointer;
+            text-decoration: none;
             border-radius: 5px;
-        }
-        button:hover {
-            background-color: #0056b3;
+            text-align: center;
+            font-weight: bold;
+            margin: 0 0 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        hello
+        {% for event_id in event_ids %}
+        <a href="/{{ event_id }}/new_player">join table {{ event_id }}</a><br>
+        {% endfor %}
     </div>
 </body>
 </html>

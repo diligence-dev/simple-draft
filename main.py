@@ -247,6 +247,14 @@ events["0"] = {
     "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),
     "previous_states": [],
 }
+events["asd"] = {
+    "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),
+    "previous_states": [],
+}
+events["sealed"] = {
+    "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),
+    "previous_states": [],
+}
 
 
 # event id to Tournament
@@ -277,7 +285,8 @@ def load_state_from_file(event_id, filename):
 # Routes
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", event_ids=events.keys())
+
 
 @app.route("/<event_id>/")
 def tournament_organizer(event_id):
