@@ -64,7 +64,6 @@ class Tournament:
         for round_results in self._round_results:
             for (p1, p2), (p1_games_won, p2_games_won) in round_results.items():
                 if p1_games_won not in [0, 1, 2] or p2_games_won not in [0, 1, 2]:
-                    warn("found illegal result")
                     continue
                 if p1_games_won > p2_games_won:
                     standings[p1]["points"] += 3
@@ -172,7 +171,9 @@ class Tournament:
 
         if self.get_round() <= 1:
             self.mod_shuffle_seatings()
-        self.mod_replace_pairing()
+
+        self.mod_replace_pairing(new_player=player_to_add)
+
         return player_to_add
 
     def mod_drop_player(self, player_to_drop):
@@ -185,7 +186,7 @@ class Tournament:
 
     def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
         if (p1, p2) not in self.get_pairing():
-            warn("not in pairing")
+            warn(f"{p1} vs {p2} not in pairing")
             return False
         if p1_games_won not in (0, 1, 2) or p2_games_won not in (0, 1, 2):
             warn("games won not in (0, 1, 2)")
@@ -210,10 +211,11 @@ class Tournament:
             if len(players) % 2 == 1:
                 players.remove("bye")
 
+            n_halved = int(len(players) / 2)
             self._round_results.append(
                 OrderedDict(
-                    pair_and_result(players[i], players[i + len(players) / 2])
-                    for i in range(len(players) / 2)
+                    pair_and_result(players[i], players[i + n_halved])
+                    for i in range(n_halved)
                 )
             )
             return True
@@ -251,7 +253,26 @@ class Tournament:
         )
         return True
 
-    def mod_replace_pairing(self):
+    def mod_replace_pairing(self, new_player=None):
+        if (
+            new_player is not None
+            and len(self.get_active_players(include_bye=True)) % 2 == 1
+        ):
+            # new player replaces bye
+            def replace_bye(pair, result):
+                a, b = pair
+                if a == "bye":
+                    return (new_player, b), (-1, -1)
+                elif b == "bye":
+                    return (a, new_player), (-1, -1)
+                return (a, b), result
+
+            self._round_results[-1] = OrderedDict(
+                replace_bye(pair, result)
+                for pair, result in self._round_results[-1].items()
+            )
+            return True
+
         if self.get_round() >= 1:
             self._round_results.pop()
         return self.mod_create_pairing()
