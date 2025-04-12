@@ -122,7 +122,12 @@
         <form method="POST" action="/{{ event_id }}/add_player" class="form-group">
             <label for="name">Add Player:</label>
             <input type="text" name="name" id="name" required>
-            <button type="submit">Add</button>
+            <button type="submit">Add Player</button>
+        </form>
+        <form method="POST" action="/{{ event_id }}/drop_player" class="form-group">
+            <label for="name">Drop Player:</label>
+            <input type="text" name="name" id="name" required>
+            <button type="submit">Drop Player</button>
         </form>
         <form method="POST" action="/{{ event_id }}/shuffle_seatings" class="form-group">
             <button type="submit">Shuffle Seatings</button>

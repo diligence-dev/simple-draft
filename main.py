@@ -397,6 +397,13 @@ def add_player(event_id):
     else:
         return redirect(url_for("new_player", event_id=event_id, name=name))
 
+@app.route("/<event_id>/drop_player", methods=["POST"])
+def drop_player(event_id):
+    save_state(event_id)
+    name = request.form.get("name")
+    name = id2t(event_id).mod_drop_player(name)
+    return redirect(url_for("tournament_organizer", event_id=event_id))
+
 
 @app.route("/<event_id>/player/<name>")
 def player(event_id, name):
@@ -412,7 +419,7 @@ def player(event_id, name):
         None,
     )
     if not match:
-        return redirect(url_for("tournament_organizer", event_id=event_id))
+        return redirect(url_for("index"))
 
     return render_template(
         "player.html",
