@@ -14,33 +14,32 @@ port = 5000
 app = Flask(__name__)
 
 
-def make_round_result(players):
-    if len(players) % 2 == 1:
-        players.append("bye")
-    round_results = OrderedDict(
-        ((players[i], players[i + 1]), (-1, -1)) for i in range(0, len(players), 2)
-    )
-    if len(players) > 0 and players[-1] == "bye":
-        round_results[(players[-2], "bye")] = (2, 0)
-    return round_results
+def pair_and_result(p1, p2):
+    if p1 == "bye":
+        return ((p1, p2), (0, 2))
+    elif p2 == "bye":
+        return ((p1, p2), (2, 0))
+    else:
+        return ((p1, p2), (-1, -1))
 
 
 class Tournament:
     def __init__(self, players):
-        self._round_results = [make_round_result([])]
+        self._dropped_players = []
+        self._round_results = []
+        self._players = ["bye"]
         for player in players:
             self.mod_add_player(player)
-        self._dropped_players = []  # TODO implement dropping
 
     def get_round_results(self):
         return self._round_results
 
-    def get_all_players(self):
-        players = self._round_results[0].keys()
-        return [p1 for p1, _ in players] + [p2 for _, p2 in players]
-
-    def get_players_no_bye(self):
-        return [p for p in self.get_all_players() if p != "bye"]
+    def get_active_players(self, include_bye=False):
+        return [
+            p
+            for p in self._players
+            if p not in self._dropped_players and (p != "bye" or include_bye)
+        ]
 
     def get_pairing(self):
         return list(self._round_results[-1].keys())
@@ -51,7 +50,7 @@ class Tournament:
     def get_round(self):
         return len(self._round_results)
 
-    def get_standings(self, include_bye=True):
+    def get_standings(self, include_bye):
         standings = {
             player: {
                 "points": 0,
@@ -59,12 +58,13 @@ class Tournament:
                 "games_played": 0,
                 "matches_played": 0,
             }
-            for player in self.get_all_players()
+            for player in self._players
         }
 
         for round_results in self._round_results:
             for (p1, p2), (p1_games_won, p2_games_won) in round_results.items():
                 if p1_games_won not in [0, 1, 2] or p2_games_won not in [0, 1, 2]:
+                    warn("found illegal result")
                     continue
                 if p1_games_won > p2_games_won:
                     standings[p1]["points"] += 3
@@ -81,7 +81,7 @@ class Tournament:
                 standings[p2]["matches_played"] += 1
 
         # Calculate player match winrate
-        for player in self.get_all_players():
+        for player in self._players:
             p = standings[player]
             if p["matches_played"] == 0:
                 standings[player]["mw"] = -100
@@ -91,7 +91,7 @@ class Tournament:
                 )
 
         # Calculate opponent match winrate (OMW)
-        for player in self.get_all_players():
+        for player in self._players:
             opponents = [
                 match[0] if match[1] == player else match[1]
                 for round_results in self._round_results
@@ -106,7 +106,7 @@ class Tournament:
                 )
 
         # Calculate game winrate (GW)
-        for player in self.get_all_players():
+        for player in self._players:
             p = standings[player]
             if p["games_played"] == 0:
                 standings[player]["gw"] = -100
@@ -114,7 +114,7 @@ class Tournament:
                 standings[player]["gw"] = max(0.333, p["games_won"] / p["games_played"])
 
         # Calculate opponent game winrate (OGW)
-        for player in self.get_all_players():
+        for player in self._players:
             opponents = [
                 match[0] if match[1] == player else match[1]
                 for round_results in self._round_results
@@ -150,35 +150,37 @@ class Tournament:
         return True
 
     def mod_shuffle_seatings(self):
-        if self.get_round() != 1:
-            warn("n rounds != 1, won't shuffle seatings")
+        if self.get_round() >= 2:
+            warn("won't shuffle seatings after round 1")
             return False
 
-        self._round_results[0] = make_round_result(
-            random.sample(self.get_all_players(), len(self.get_all_players()))
-        )
+        self._players = random.sample(self._players, len(self._players))
+        self.mod_replace_pairing()
         return True
 
-    def mod_add_player(self, name):
-        name = re.sub(r"[^A-Za-z]", "_", name)
-        if name in self.get_all_players() or self.get_round() != 1:
+    def mod_add_player(self, player_to_add):
+        player_to_add = re.sub(r"[^A-Za-z]", "_", player_to_add)
+
+        if player_to_add in self.get_active_players() or player_to_add == "bye":
             return ""
 
-        self._round_results[0] = make_round_result(self.get_players_no_bye() + [name])
-        return name
+        if player_to_add in self._dropped_players:
+            assert player_to_add in self._players
+            self._dropped_players.remove(player_to_add)
+        else:
+            self._players.append(player_to_add)
 
-    def mod_drop_player(self, name):
-        if name not in self.get_all_players():
+        if self.get_round() <= 1:
+            self.mod_shuffle_seatings()
+        self.mod_replace_pairing()
+        return player_to_add
+
+    def mod_drop_player(self, player_to_drop):
+        if player_to_drop not in self._players or player_to_drop == "bye":
             return False
 
-        if self.get_round() == 1:
-            self._round_results = [make_round_result([])]
-            for player in self.get_all_players():
-                if player != name:
-                    self.mod_add_player(player)
-            return True
-
-        self._dropped_players.append(name)
+        self._dropped_players.append(player_to_drop)
+        self.mod_replace_pairing()
         return True
 
     def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
@@ -203,9 +205,26 @@ class Tournament:
         return True
 
     def mod_create_pairing(self):
+        if self.get_round() == 0:
+            players = self.get_active_players(include_bye=True)
+            if len(players) % 2 == 1:
+                players.remove("bye")
+
+            self._round_results.append(
+                OrderedDict(
+                    pair_and_result(players[i], players[i + len(players) / 2])
+                    for i in range(len(players) / 2)
+                )
+            )
+            return True
+
         # Swiss pairing using maximum weight matching
-        standings = self.get_standings()
-        players = [p["name"] for p in standings]  # in standings order
+        standings = self.get_standings(include_bye=True)
+        active_players = self.get_active_players(include_bye=True)
+        if len(active_players) % 2 == 1:
+            active_players.remove("bye")
+        # get players in standings order
+        players = [p["name"] for p in standings if p["name"] in active_players]
         pairing_history = {
             frozenset(match)
             for round_results in self._round_results
@@ -226,19 +245,16 @@ class Tournament:
 
         pairings = list(nx.max_weight_matching(G, maxcardinality=True))
 
-        def prefill(p1, p2):
-            if p1 == "bye":
-                return (0, 2)
-            elif p2 == "bye":
-                return (2, 0)
-            else:
-                return (-1, -1)
-
         # Add current pairings to x
         self._round_results.append(
-            OrderedDict(((p1, p2), prefill(p1, p2)) for p1, p2 in pairings)
+            OrderedDict(pair_and_result(p1, p2) for p1, p2 in pairings)
         )
         return True
+
+    def mod_replace_pairing(self):
+        if self.get_round() >= 1:
+            self._round_results.pop()
+        return self.mod_create_pairing()
 
 
 # Dictionary to store state for each event
@@ -292,10 +308,10 @@ def index():
 def tournament_organizer(event_id):
     return render_template(
         "tournament_organizer.html",
-        players=id2t(event_id).get_players_no_bye(),
+        players=id2t(event_id).get_active_players(include_bye=True),
         pairing=id2t(event_id).get_pairing(),
         pairing_with_score=id2t(event_id).get_pairing_with_score(),
-        standings=id2t(event_id).get_standings(include_bye=False),
+        standings=id2t(event_id).get_standings(include_bye=True),
         round_number=id2t(event_id).get_round(),
         event_id=event_id,
         round_results=[
@@ -311,14 +327,14 @@ def tournament_organizer(event_id):
 def qr(event_id):
     global url
     url = request.form.get("url")
-    return redirect(url_for("index", event_id=event_id))
+    return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
 @app.route("/<event_id>/shuffle_seatings", methods=["POST"])
 def shuffle_seatings(event_id):
     save_state(event_id)
     id2t(event_id).mod_shuffle_seatings()
-    return redirect(url_for("index", event_id=event_id))
+    return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
 @app.route("/<event_id>/submit_results", methods=["POST"])
@@ -332,7 +348,7 @@ def submit_results(event_id):
 
     id2t(event_id).mod_submit_results(round_result)
 
-    return redirect(url_for("index", event_id=event_id))
+    return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
 # player interface
@@ -343,7 +359,7 @@ def new_player(event_id):
     return render_template(
         "new_player.html",
         error_message=error_message,
-        players=id2t(event_id).get_players_no_bye(),
+        players=id2t(event_id).get_active_players(),
         event_id=event_id,
     )
 
@@ -363,7 +379,7 @@ def add_player(event_id):
 
 @app.route("/<event_id>/player/<name>")
 def player(event_id, name):
-    if name not in id2t(event_id).get_players_no_bye():
+    if name not in id2t(event_id).get_active_players():
         return redirect(url_for("new_player", event_id=event_id))
 
     match = next(
@@ -375,7 +391,7 @@ def player(event_id, name):
         None,
     )
     if not match:
-        return redirect(url_for("index", event_id=event_id))
+        return redirect(url_for("tournament_organizer", event_id=event_id))
 
     return render_template(
         "player.html",
@@ -408,7 +424,7 @@ def submit_result(event_id):
 def draft_seating(event_id):
     return render_template(
         "draft_seating.html",
-        players=id2t(event_id).get_players_no_bye(),
+        players=id2t(event_id).get_active_players(),
         highlight=None,
         event_id=event_id,
         url=url,
@@ -417,11 +433,11 @@ def draft_seating(event_id):
 
 @app.route("/<event_id>/draft_seating/<name>")
 def draft_seating_highlight(event_id, name):
-    if name not in id2t(event_id).get_players_no_bye():
+    if name not in id2t(event_id).get_active_players():
         return redirect(url_for("draft_seating", event_id=event_id))
     return render_template(
         "draft_seating.html",
-        players=id2t(event_id).get_players_no_bye(),
+        players=id2t(event_id).get_active_players(),
         highlight=name,
         event_id=event_id,
         url=url,
@@ -432,14 +448,14 @@ def draft_seating_highlight(event_id, name):
 def undo(event_id):
     if events[event_id]["previous_states"]:
         events[event_id]["x"] = events[event_id]["previous_states"].pop()
-    return redirect(url_for("index", event_id=event_id))
+    return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
 @app.route("/<event_id>/load_state", methods=["POST"])
 def load_state(event_id):
     filename = request.form.get("filename")
     load_state_from_file(event_id, filename)
-    return redirect(url_for("index", event_id=event_id))
+    return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
 if __name__ == "__main__":
