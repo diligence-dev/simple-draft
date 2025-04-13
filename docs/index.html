@@ -4,34 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Draft</title>
+    <meta http-equiv="refresh" content="1;url=http://localhost:5000">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+        a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            margin: 0 0 20px 0;
+        }
+    </style>
 </head>
 <body>
-    <div id="dynamic-link-container"></div>
-
-    <script>
-        async function fetchLink() {
-            try {
-                const response = await fetch('https://github.com/diligence-dev/simple-draft/raw/refs/heads/main/url');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                const linkText = await response.text();
-                
-                // Create a new link element
-                const linkElement = document.createElement('a');
-                linkElement.href = linkText.trim(); // Trim any extra whitespace from the fetched text
-                linkElement.target = '_blank'; // Open the link in a new tab
-                linkElement.textContent = 'Click Here';
-
-                // Append the link to the container div
-                document.getElementById('dynamic-link-container').appendChild(linkElement);
-            } catch (error) {
-                console.error('There has been a problem with your fetch operation:', error);
-            }
-        }
-
-        // Call the function to fetch and create the dynamic link
-        fetchLink();
-    </script>
+    <div class="container">
+        <a href="http://localhost:5000">open Simple Draft</a><br>
+    </div>
 </body>
 </html>
