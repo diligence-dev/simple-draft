@@ -2,7 +2,6 @@ from flask import Flask, request, render_template, redirect, url_for
 import random
 from collections import defaultdict, OrderedDict
 from statistics import mean
-import re
 import networkx as nx
 import copy
 import pickle
@@ -162,8 +161,6 @@ class Tournament:
         return True
 
     def mod_add_player(self, player_to_add):
-        player_to_add = re.sub(r"[^A-Za-z]", "_", player_to_add)
-
         if player_to_add in self.get_active_players() or player_to_add == "bye":
             return ""
 

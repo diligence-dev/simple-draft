@@ -38,6 +38,10 @@
             width: 100%;
             box-sizing: border-box;
         }
+        select {
+            padding: 12px;
+            margin: 5px;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -72,10 +76,20 @@
             <input type="hidden" name="submitting_player" id="submitting_player" value="{{ name }}">
             <input type="text" name="p1" id="p1" value="{{ p1 }}" readonly hidden>
             <label for="p1_games_won">Games Won by {{ p1 }}:</label>
-            <input type="number" name="p1_games_won" id="p1_games_won" value="" min="0" max="2" required>
+            <select name="p1_games_won" id="p1_games_won" required>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+            </select>
+            <br>
             <input type="text" name="p2" id="p2" value="{{ p2 }}" readonly hidden>
             <label for="p2_games_won">Games Won by {{ p2 }}:</label>
-            <input type="number" name="p2_games_won" id="p2_games_won" value="" min="0" max="2" required>
+            <select name="p2_games_won" id="p2_games_won" required>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+            </select>
+            <br>
             <button type="submit">Submit Result</button>
             {% if s1 != -1 and s2 != -1 %}
                 <p>Currently submitted match result: {{ p1 }} {{ s1 }} - {{ s2 }} {{ p2 }}</p>
