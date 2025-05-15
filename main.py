@@ -295,8 +295,8 @@ def id2t(event_id):
     return events[event_id]["x"]
 
 
-# for QR code, must be set once
-url = ""
+# for QR code
+url = "https://chillturtle.pythonanywhere.com"
 
 
 def save_state(event_id):
