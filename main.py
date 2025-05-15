@@ -7,6 +7,7 @@ import copy
 import pickle
 from datetime import datetime
 from warnings import warn
+import time
 
 port = 5000
 
@@ -27,11 +28,15 @@ class Tournament:
         self._dropped_players = []
         self._round_results = []
         self._players = ["bye"]
+        self._round_start_times = []
         for player in players:
             self.mod_add_player(player)
 
     def get_round_results(self):
         return self._round_results
+
+    def get_round_start_time(self):
+        return self._round_start_times[-1]
 
     def get_active_players(self, include_bye=False):
         return [
@@ -226,6 +231,7 @@ class Tournament:
         return True
 
     def mod_create_pairing(self):
+        self._round_start_times.append(time.strftime("%H:%M", time.localtime()))
         if self.get_round() == 0:
             players = self.get_active_players(include_bye=True)
             if len(players) % 2 == 1:
@@ -356,6 +362,7 @@ def tournament_organizer(event_id):
             for (p1, p2), (s1, s2) in round_result.items()
         ],
         url=url,
+        round_start_time=id2t(event_id).get_round_start_time(),
     )
 
 
@@ -455,6 +462,7 @@ def player(event_id, name):
         name=name,
         standings=id2t(event_id).get_standings(include_bye=False),
         event_id=event_id,
+        round_start_time=id2t(event_id).get_round_start_time(),
     )
 
 
