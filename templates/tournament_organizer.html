@@ -146,6 +146,7 @@
         </ul>
 
         <a href="/{{ event_id }}/undo">undo</a><br>
+        <a href="/{{ event_id }}/write_state">write state to pickle file</a><br>
 
         <form method="POST" action="/{{ event_id }}/qr" class="form-group">
             <input type="text" name="url" id="url" value="{{ url }}" required>

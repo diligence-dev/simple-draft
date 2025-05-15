@@ -302,8 +302,11 @@ url = ""
 def save_state(event_id):
     x = copy.deepcopy(events[event_id]["x"])
     events[event_id]["previous_states"].append(x)
+
+
+def write_state_to_file(event_id):
     with open(f"pickles/{datetime.now().isoformat()}_{event_id}.pickle", "wb") as f:
-        pickle.dump(x, f)
+        pickle.dump(events[event_id]["x"], f)
 
 
 def load_state_from_file(event_id, filename):
@@ -393,6 +396,7 @@ def add_player(event_id):
     else:
         return redirect(url_for("new_player", event_id=event_id, name=name))
 
+
 @app.route("/<int:event_id>/drop_player", methods=["POST"])
 def drop_player(event_id):
     save_state(event_id)
@@ -479,6 +483,12 @@ def undo(event_id):
 def load_state(event_id):
     filename = request.form.get("filename")
     load_state_from_file(event_id, filename)
+    return redirect(url_for("tournament_organizer", event_id=event_id))
+
+
+@app.route("/<int:event_id>/write_state")
+def write_state(event_id):
+    write_state_to_file(event_id)
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
