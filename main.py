@@ -188,6 +188,22 @@ class Tournament:
         self.mod_replace_pairing()
         return True
 
+    def mod_swap_players(self, player1, player2):
+        def f(p1, p2, g1, g2):
+            if p1 == player1:
+                return ((player2, p2), (-1, -1))
+            if p2 == player1:
+                return ((p1, player2), (-1, -1))
+            if p1 == player2:
+                return ((player1, p2), (-1, -1))
+            if p2 == player2:
+                return ((p1, player1), (-1, -1))
+            return ((p1, p2), (g1, g2))
+
+        self._round_results[-1] = dict(
+            f(p1, p2, g1, g2) for (p1, p2), (g1, g2) in self._round_results[-1].items()
+        )
+
     def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
         if (p1, p2) not in self.get_pairing():
             warn(f"{p1} vs {p2} not in pairing")
@@ -402,6 +418,15 @@ def drop_player(event_id):
     save_state(event_id)
     name = request.form.get("name")
     name = id2t(event_id).mod_drop_player(name)
+    return redirect(url_for("tournament_organizer", event_id=event_id))
+
+
+@app.route("/<int:event_id>/swap_players", methods=["POST"])
+def swap_players(event_id):
+    save_state(event_id)
+    id2t(event_id).mod_swap_players(
+        request.form.get("player1"), request.form.get("player2")
+    )
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 

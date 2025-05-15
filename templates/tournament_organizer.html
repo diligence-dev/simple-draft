@@ -129,6 +129,12 @@
             <input type="text" name="name" id="name" required>
             <button type="submit">Drop Player</button>
         </form>
+        <form method="POST" action="/{{ event_id }}/swap_players" class="form-group">
+            <label for="name">Swap Players in Pairing:</label>
+            <input type="text" name="player1" id="player1" required>
+            <input type="text" name="player2" id="player2" required>
+            <button type="submit">Swap Players</button>
+        </form>
         <form method="POST" action="/{{ event_id }}/shuffle_seatings" class="form-group">
             <button type="submit">Shuffle Seatings</button>
         </form>
