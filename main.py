@@ -7,7 +7,7 @@ import copy
 import pickle
 from datetime import datetime
 from warnings import warn
-import time
+from zoneinfo import ZoneInfo
 
 port = 5000
 
@@ -21,6 +21,10 @@ def pair_and_result(p1, p2):
         return ((p1, p2), (2, 0))
     else:
         return ((p1, p2), (-1, -1))
+
+
+def now_Berlin():
+    return datetime.now(ZoneInfo("Europe/Berlin"))
 
 
 class Tournament:
@@ -231,7 +235,7 @@ class Tournament:
         return True
 
     def mod_create_pairing(self):
-        self._round_start_times.append(time.strftime("%H:%M", time.localtime()))
+        self._round_start_times.append(now_Berlin().strftime("%H:%M"))
         if self.get_round() == 0:
             players = self.get_active_players(include_bye=True)
             if len(players) % 2 == 1:
@@ -339,7 +343,7 @@ def save_global_state():
 
 
 def write_state_to_file(event_id):
-    with open(f"pickles/{datetime.now().isoformat()}_{event_id}.pickle", "wb") as f:
+    with open(f"pickles/{now_Berlin().isoformat()}_{event_id}.pickle", "wb") as f:
         pickle.dump(events[event_id]["x"], f)
 
 
@@ -359,8 +363,9 @@ def load_state_from_file(event_id, filename):
 @app.route("/")
 def index():
     new_event_id = max(events.keys()) + 1
-    return render_template("index.html", event_ids=events.keys(),
-                           new_event_id = new_event_id)
+    return render_template(
+        "index.html", event_ids=events.keys(), new_event_id=new_event_id
+    )
 
 
 @app.route("/<int:event_id>/")
