@@ -304,12 +304,19 @@ class Tournament:
         return self.mod_create_pairing()
 
 
-# Dictionary to store state for each event
-events = defaultdict(lambda: {"x": Tournament([]), "previous_states": []})
-events[0] = {
-    "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),
-    "previous_states": [],
-}
+def empty_event():
+    return {"x": Tournament([]), "previous_states": []}
+
+
+try:
+    with open("events.pickle", "rb") as f:
+        events = pickle.load(f)
+except (FileNotFoundError, pickle.UnpicklingError) as e:
+    events = defaultdict(empty_event)
+    events[0] = {
+        "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),
+        "previous_states": [],
+    }
 
 
 # event id to Tournament
@@ -326,18 +333,26 @@ def save_state(event_id):
     events[event_id]["previous_states"].append(x)
 
 
+def save_global_state():
+    with open(f"events.pickle", "wb") as f:
+        pickle.dump(events, f)
+
+
 def write_state_to_file(event_id):
     with open(f"pickles/{datetime.now().isoformat()}_{event_id}.pickle", "wb") as f:
         pickle.dump(events[event_id]["x"], f)
 
 
 def load_state_from_file(event_id, filename):
-    events[event_id]["previous_states"].append(events[event_id]["x"])
+    x = copy.deepcopy(events[event_id]["x"])
     try:
         with open(filename, "rb") as f:
             events[event_id]["x"] = pickle.load(f)
+        events[event_id]["previous_states"].append(x)
     except (FileNotFoundError, pickle.UnpicklingError) as e:
         print(f"Error loading state from file '{filename}': {e}")
+    finally:
+        save_global_state()
 
 
 # Routes
@@ -377,6 +392,7 @@ def qr(event_id):
 def shuffle_seatings(event_id):
     save_state(event_id)
     id2t(event_id).mod_shuffle_seatings()
+    save_global_state()
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
@@ -391,6 +407,7 @@ def submit_results(event_id):
 
     id2t(event_id).mod_submit_results(round_result)
 
+    save_global_state()
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
@@ -413,18 +430,22 @@ def add_player(event_id):
     name = request.form.get("name")
     name = id2t(event_id).mod_add_player(name)
     if name != "":
-        return redirect(
-            url_for("draft_seating_highlight", event_id=event_id, name=name)
-        )
+        target = "draft_seating_highlight"
     else:
-        return redirect(url_for("new_player", event_id=event_id, name=name))
+        target = "new_player"
+
+    save_global_state()
+    return redirect(url_for(target, event_id=event_id, name=name))
 
 
 @app.route("/<int:event_id>/drop_player", methods=["POST"])
 def drop_player(event_id):
     save_state(event_id)
+
     name = request.form.get("name")
     name = id2t(event_id).mod_drop_player(name)
+
+    save_global_state()
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
@@ -434,6 +455,7 @@ def swap_players(event_id):
     id2t(event_id).mod_swap_players(
         request.form.get("player1"), request.form.get("player2")
     )
+    save_global_state()
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
@@ -478,6 +500,8 @@ def submit_result(event_id):
     )
 
     submitting_player = request.form.get("submitting_player")
+
+    save_global_state()
     return redirect(url_for("player", event_id=event_id, name=submitting_player))
 
 
@@ -509,6 +533,7 @@ def draft_seating_highlight(event_id, name):
 def undo(event_id):
     if events[event_id]["previous_states"]:
         events[event_id]["x"] = events[event_id]["previous_states"].pop()
+    save_global_state()
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
