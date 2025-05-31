@@ -358,7 +358,9 @@ def load_state_from_file(event_id, filename):
 # Routes
 @app.route("/")
 def index():
-    return render_template("index.html", event_ids=events.keys())
+    new_event_id = max(events.keys()) + 1
+    return render_template("index.html", event_ids=events.keys(),
+                           new_event_id = new_event_id)
 
 
 @app.route("/<int:event_id>/")
