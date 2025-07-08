@@ -46,6 +46,7 @@
 </head>
 <body>
     <div class="container">
+        <h1 id="please-reload" style="background-color: #F00;"></h1>
         <h1>Draft Seating - Table {{ event_id }}</h1>
         <div>Others can join via QR below. Everyone joined? Reload to show seatings.</div>
         <ul>
@@ -66,6 +67,19 @@
                 "{{ url }}/{{ event_id }}/new_player",
                 { width: canvasWidth }
             );
+            function loadDoc() {
+                console.log("{{ last_update }}")
+                const xhttp = new XMLHttpRequest()
+                xhttp.onload = function() {
+                    if (this.responseText != "{{ last_update }}") {
+                        document.getElementById("please-reload").innerHTML = "Please Reload"
+                    }
+                }
+                xhttp.open("GET", "/{{ event_id }}/lastupdate", true)
+                xhttp.send()
+            }
+
+            setInterval(loadDoc, 10*1000)
         </script>
     </div>
 </body>

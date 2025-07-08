@@ -5,7 +5,8 @@ from statistics import mean
 import networkx as nx
 import copy
 import pickle
-from datetime import datetime
+import datetime
+import time
 from warnings import warn
 from zoneinfo import ZoneInfo
 
@@ -24,7 +25,7 @@ def pair_and_result(p1, p2):
 
 
 def now_Berlin():
-    return datetime.now(ZoneInfo("Europe/Berlin"))
+    return datetime.datetime.now(ZoneInfo("Europe/Berlin"))
 
 
 class Tournament:
@@ -320,6 +321,7 @@ except (FileNotFoundError, pickle.UnpicklingError) as e:
     events[0] = {
         "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),
         "previous_states": [],
+        "last_update": "0",
     }
 
 
@@ -335,6 +337,7 @@ url = "https://chillturtle.pythonanywhere.com"
 def save_state(event_id):
     x = copy.deepcopy(events[event_id]["x"])
     events[event_id]["previous_states"].append(x)
+    events[event_id]["last_update"] = str(time.time())
 
 
 def save_global_state():
@@ -533,6 +536,7 @@ def draft_seating_highlight(event_id, name):
         highlight=name,
         event_id=event_id,
         url=url,
+        last_update=events[event_id]["last_update"],
     )
 
 
@@ -555,6 +559,11 @@ def load_state(event_id):
 def write_state(event_id):
     write_state_to_file(event_id)
     return redirect(url_for("tournament_organizer", event_id=event_id))
+
+
+@app.route("/<int:event_id>/lastupdate")
+def lastupdate(event_id):
+    return events[event_id]["last_update"]
 
 
 if __name__ == "__main__":
