@@ -46,7 +46,6 @@
 </head>
 <body>
     <div class="container">
-        <h1 id="please-reload" style="background-color: #F00;"></h1>
         <h1>Draft Seating - Table {{ event_id }}</h1>
         <div>Others can join via QR below. Everyone joined? Reload to show seatings.</div>
         <ul>
@@ -69,7 +68,7 @@
                 const xhttp = new XMLHttpRequest()
                 xhttp.onload = function() {
                     if (this.responseText != "{{ last_update }}") {
-                        document.getElementById("please-reload").innerHTML = "Please Reload"
+                        location.reload()
                     }
                 }
                 xhttp.open("GET", "/{{ event_id }}/lastupdate", true)
