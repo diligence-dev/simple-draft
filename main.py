@@ -483,7 +483,7 @@ def player(event_id, name):
         None,
     )
     if not match:
-        return redirect(url_for("index"))
+        return redirect(url_for("new_player", event_id=event_id))
 
     return render_template(
         "player.html",
@@ -515,21 +515,10 @@ def submit_result(event_id):
     return redirect(url_for("player", event_id=event_id, name=submitting_player))
 
 
-@app.route("/<int:event_id>/draft_seating")
-def draft_seating(event_id):
-    return render_template(
-        "draft_seating.html",
-        players=id2t(event_id).get_active_players(),
-        highlight=None,
-        event_id=event_id,
-        url=url,
-    )
-
-
 @app.route("/<int:event_id>/draft_seating/<name>")
 def draft_seating_highlight(event_id, name):
     if name not in id2t(event_id).get_active_players():
-        return redirect(url_for("draft_seating", event_id=event_id))
+        return redirect(url_for("new_player", event_id=event_id))
     return render_template(
         "draft_seating.html",
         players=id2t(event_id).get_active_players(),

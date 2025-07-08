@@ -54,9 +54,7 @@
                 <li class="{% if player == highlight %}highlight{% endif %}">{{ loop.index }}. {{ player }}</li>
             {% endfor %}
         </ul>
-        {% if highlight %}
         <a href="/{{ event_id }}/player/{{ highlight }}">draft is done, continue to matches</a>
-        {% endif %}
 
         <canvas id="qrcode" style="width: 100%;"></canvas>
         <script>
@@ -68,7 +66,6 @@
                 { width: canvasWidth }
             );
             function loadDoc() {
-                console.log("{{ last_update }}")
                 const xhttp = new XMLHttpRequest()
                 xhttp.onload = function() {
                     if (this.responseText != "{{ last_update }}") {
