@@ -495,6 +495,7 @@ def player(event_id, name):
         standings=id2t(event_id).get_standings(include_bye=False),
         event_id=event_id,
         round_start_time=id2t(event_id).get_round_start_time(),
+        last_update=events[event_id]["last_update"]
     )
 
 

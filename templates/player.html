@@ -67,6 +67,7 @@
 </head>
 <body>
     <div class="container">
+        <h1 id="please-reload" style="background-color: #F00;"></h1>
         {% if p1 != name %}
         <h1>{{ p1 }} is your opponent</h1>
         {% else %}
@@ -129,5 +130,19 @@
             </tbody>
         </table>
     </div>
+    <script>
+        function loadDoc() {
+            const xhttp = new XMLHttpRequest()
+            xhttp.onload = function() {
+                if (this.responseText != "{{ last_update }}") {
+                    document.getElementById("please-reload").innerHTML = "Please Reload"
+                }
+            }
+            xhttp.open("GET", "/{{ event_id }}/lastupdate", true)
+            xhttp.send()
+        }
+
+        setInterval(loadDoc, 10*1000)
+    </script>
 </body>
 </html>
