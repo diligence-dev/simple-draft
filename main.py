@@ -312,9 +312,10 @@ class Tournament:
 def empty_event():
     return {"x": Tournament([]), "previous_states": []}
 
+global_state_file = f"{datetime.date.today().isoformat()}_events.pickle"
 
 try:
-    with open("events.pickle", "rb") as f:
+    with open(global_state_file, "rb") as f:
         events = pickle.load(f)
 except (FileNotFoundError, pickle.UnpicklingError) as e:
     events = defaultdict(empty_event)
@@ -341,7 +342,7 @@ def save_state(event_id):
 
 
 def save_global_state():
-    with open(f"events.pickle", "wb") as f:
+    with open(global_state_file, "wb") as f:
         pickle.dump(events, f)
 
 
