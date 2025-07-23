@@ -40,8 +40,11 @@ class Tournament:
     def get_round_results(self):
         return self._round_results
 
-    def get_round_start_time(self):
-        return self._round_start_times[-1]
+    def get_round_start_time(self, formatted = True):
+        if formatted:
+            return self._round_start_times[-1].strftime("%H:%M")
+        else:
+            return self._round_start_times[-1]
 
     def get_active_players(self, include_bye=False):
         return [
@@ -236,7 +239,7 @@ class Tournament:
         return True
 
     def mod_create_pairing(self):
-        self._round_start_times.append(now_Berlin().strftime("%H:%M"))
+        self._round_start_times.append(now_Berlin())
         if self.get_round() == 0:
             players = self.get_active_players(include_bye=True)
             if len(players) % 2 == 1:
@@ -486,6 +489,8 @@ def player(event_id, name):
     if not match:
         return redirect(url_for("new_player", event_id=event_id))
 
+    seconds_in_round = (now_Berlin() - id2t(event_id).get_round_start_time(False)).seconds
+
     return render_template(
         "player.html",
         p1=match[0],
@@ -496,6 +501,7 @@ def player(event_id, name):
         standings=id2t(event_id).get_standings(include_bye=False),
         event_id=event_id,
         round_start_time=id2t(event_id).get_round_start_time(),
+        show_new_round=seconds_in_round < 180,
         last_update=events[event_id]["last_update"],
     )
 

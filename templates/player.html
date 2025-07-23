@@ -63,14 +63,24 @@
         li {
             margin: 5px 0;
         }
+        #new_round {
+            background-color: #090;
+            padding: 50px;
+            border-radius: 15px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        {% if show_new_round %}
+        <h1 id="new_round">New round! Tell everyone to check pairings.</h1>
+        {% endif %}
+
+        <h2>your opponent:</h3>
         {% if p1 != name %}
-        <h1>{{ p1 }} is your opponent</h1>
+        <h1>{{ p1 }}</h1>
         {% else %}
-        <h1>{{ p2 }} is your opponent</h1>
+        <h1>{{ p2 }}</h1>
         {% endif %}
         <form method="POST" action="/{{ event_id }}/submit_result" class="form-group">
             <input type="hidden" name="submitting_player" id="submitting_player" value="{{ name }}">
