@@ -79,7 +79,7 @@
         <h2>You're already registered? Login as...</h2>
         <ul>
             {% for player in players %}
-                <li><a href="/{{ event_id }}/draft_seating/{{ player }}" class="player-button">{{ player }}</a></li>
+                <li><a href="/{{ event_id }}/{{ already_registered_route }}/{{ player }}" class="player-button">{{ player }}</a></li>
             {% endfor %}
         </ul>
         {% endif %}

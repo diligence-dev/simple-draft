@@ -431,10 +431,18 @@ def submit_results(event_id):
 def new_player(event_id):
     name = request.args.get("name")
     error_message = None if not name else f"Player '{name}' already exists"
+    seconds_in_round = (
+        now_Berlin() - id2t(event_id).get_round_start_time(False)
+    ).seconds
     return render_template(
         "new_player.html",
         error_message=error_message,
         players=id2t(event_id).get_active_players(),
+        already_registered_route=(
+            "player"
+            if id2t(event_id).get_round() > 1 or seconds_in_round > 30 * 60
+            else "draft_seating"
+        ),
         event_id=event_id,
     )
 
