@@ -40,7 +40,7 @@ class Tournament:
     def get_round_results(self):
         return self._round_results
 
-    def get_round_start_time(self, formatted = True):
+    def get_round_start_time(self, formatted=True):
         if formatted:
             return self._round_start_times[-1].strftime("%H:%M")
         else:
@@ -315,6 +315,7 @@ class Tournament:
 def empty_event():
     return {"x": Tournament([]), "previous_states": []}
 
+
 global_state_file = f"{datetime.date.today().isoformat()}_events.pickle"
 
 try:
@@ -489,7 +490,9 @@ def player(event_id, name):
     if not match:
         return redirect(url_for("new_player", event_id=event_id))
 
-    seconds_in_round = (now_Berlin() - id2t(event_id).get_round_start_time(False)).seconds
+    seconds_in_round = (
+        now_Berlin() - id2t(event_id).get_round_start_time(False)
+    ).seconds
 
     return render_template(
         "player.html",
@@ -561,6 +564,14 @@ def write_state(event_id):
 @app.route("/<int:event_id>/lastupdate")
 def lastupdate(event_id):
     return events[event_id]["last_update"]
+
+
+@app.route("/<int:event_id>/standings")
+def standings(event_id):
+    return render_template(
+        "standings.html",
+        standings=id2t(event_id).get_standings(include_bye=False),
+    )
 
 
 if __name__ == "__main__":
