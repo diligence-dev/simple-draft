@@ -277,7 +277,10 @@ class Tournament:
                     score_diff = abs(
                         standings[i]["points"] - standings[players.index(p2)]["points"]
                     )
-                    G.add_edge(p1, p2, weight=-score_diff * score_diff)
+                    score_sum = (
+                        standings[i]["points"] + standings[players.index(p2)]["points"]
+                    )
+                    G.add_edge(p1, p2, weight=-(score_diff**2 * score_sum))
 
         pairings = list(nx.max_weight_matching(G, maxcardinality=True))
 
