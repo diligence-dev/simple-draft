@@ -41,10 +41,12 @@ class Tournament:
         return self._round_results
 
     def get_round_start_time(self, formatted=True):
-        if formatted:
-            return self._round_start_times[-1].strftime("%H:%M")
-        else:
-            return self._round_start_times[-1]
+        t = (
+            now_Berlin()
+            if len(self._round_start_times) == 0
+            else self._round_start_times[-1]
+        )
+        return t.strftime("%H:%M") if formatted else t
 
     def get_active_players(self, include_bye=False):
         return [
