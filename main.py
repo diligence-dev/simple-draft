@@ -179,6 +179,7 @@ class Tournament:
         player_to_add = player_to_add.replace("/", "|")
         player_to_add = player_to_add.replace("?", "")
         player_to_add = player_to_add.replace("%", "")
+        player_to_add = player_to_add.strip()
         if player_to_add in self.get_active_players() or player_to_add == "bye":
             return ""
 
