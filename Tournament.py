@@ -11,12 +11,42 @@ Pair = tuple[Player, Player]
 Result = tuple[int, int]
 
 
+def now_Berlin() -> datetime:
+    return datetime.now(ZoneInfo("Europe/Berlin"))
+
+
 @dataclass
 class Match:
     p1: Player
     p2: Player
     p1_games_won: int = -1
     p2_games_won: int = -1
+    t_start: datetime = now_Berlin()  # placeholder, overwritten by post_init
+    t_end: datetime | None = None
+
+    def __post_init__(self):
+        self.t_start = now_Berlin()
+
+    def mod_finish(self, p1_games_won: int, p2_games_won: int) -> bool:
+        if (
+            0 <= p1_games_won + p2_games_won <= 3
+            and p1_games_won >= 0
+            and p2_games_won >= 0
+        ):
+            self.t_end = now_Berlin()
+            if self.t_end < self.t_start:
+                warn(f"match ended before it began: ${self}")
+
+            self.p1_games_won = p1_games_won
+            self.p2_games_won = p2_games_won
+            return True
+        else:
+            return False
+
+    def duration_seconds(self) -> int | None:
+        if self.t_end is None:
+            return None
+        return (self.t_end - self.t_start).seconds
 
     def includes(self, player: Player) -> bool:
         return player in (self.p1, self.p2)
@@ -26,6 +56,7 @@ class Match:
             0 <= self.p1_games_won + self.p2_games_won <= 3
             and self.p1_games_won >= 0
             and self.p2_games_won >= 0
+            and self.t_end is not None
         )
 
     def __iter__(self):
@@ -33,10 +64,6 @@ class Match:
         yield self.p2
         yield self.p1_games_won
         yield self.p2_games_won
-
-
-def now_Berlin() -> datetime:
-    return datetime.now(ZoneInfo("Europe/Berlin"))
 
 
 def pair_and_result(p1: str, p2: str) -> Match:
@@ -257,9 +284,9 @@ class Tournament:
             warn("total games > 3")
             return False
 
-        def replace_result(m, p1, p2, p1_games_won, p2_games_won):
+        def replace_result(m: Match, p1, p2, p1_games_won, p2_games_won):
             if m.p1 == p1 and m.p2 == p2:
-                return Match(p1, p2, p1_games_won, p2_games_won)
+                return m.mod_finish(p1_games_won, p2_games_won)
             return m
 
         self._round_results[-1] = [
