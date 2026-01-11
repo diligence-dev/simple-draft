@@ -12,14 +12,15 @@ app = Flask(__name__)
 
 global_state_file = f"{datetime.date.today().isoformat()}_events.pickle"
 
+
+def empty_event():
+    return {"x": Tournament([]), "previous_states": []}
+
+
 try:
     with open(global_state_file, "rb") as f:
         events = pickle.load(f)
 except (FileNotFoundError, pickle.UnpicklingError) as e:
-
-    def empty_event():
-        return {"x": Tournament([]), "previous_states": []}
-
     events = defaultdict(empty_event)
     events[0] = {
         "x": Tournament(["a", "b", "c", "d", "e", "f", "g"]),

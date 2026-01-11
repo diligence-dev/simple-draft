@@ -1,17 +1,24 @@
 from collections import OrderedDict
+from dataclasses import dataclass
+from datetime import datetime
 from random import sample
 from statistics import mean
+from typing import Iterable
 from warnings import warn
 from zoneinfo import ZoneInfo
-import datetime
 import networkx as nx
 
+Player = str
+Pair = tuple[Player, Player]
+Result = tuple[int, int]
+RoundResult = dict[Pair, Result]
 
-def now_Berlin():
-    return datetime.datetime.now(ZoneInfo("Europe/Berlin"))
+
+def now_Berlin() -> datetime:
+    return datetime.now(ZoneInfo("Europe/Berlin"))
 
 
-def pair_and_result(p1, p2):
+def pair_and_result(p1: str, p2: str) -> tuple[Pair, Result]:
     if p1 == "bye":
         return ((p1, p2), (0, 2))
     elif p2 == "bye":
@@ -20,19 +27,32 @@ def pair_and_result(p1, p2):
         return ((p1, p2), (-1, -1))
 
 
+@dataclass
+class PlayerStats:
+    name: str
+    points: int = 0
+    games_won: int = 0
+    games_played: int = 0
+    matches_played: int = 0
+    mw: float = -99
+    omw: float = -99
+    gw: float = -99
+    ogw: float = -99
+
+
 class Tournament:
-    def __init__(self, players):
-        self._dropped_players = []
-        self._round_results = []
-        self._players = ["bye"]
-        self._round_start_times = []
+    def __init__(self, players: list[Player]):
+        self._dropped_players: list[Player] = []
+        self._round_results: list[RoundResult] = []
+        self._players: list[Player] = ["bye"]
+        self._round_start_times: list[datetime] = []
         for player in players:
             self.mod_add_player(player)
 
-    def get_round_results(self):
+    def get_round_results(self) -> list[dict[tuple[str, str], tuple[int, int]]]:
         return self._round_results
 
-    def get_round_start_time(self, formatted=True):
+    def get_round_start_time(self, formatted=True) -> str | datetime:
         t = (
             now_Berlin()
             if len(self._round_start_times) == 0
@@ -40,35 +60,29 @@ class Tournament:
         )
         return t.strftime("%H:%M") if formatted else t
 
-    def get_active_players(self, include_bye=False):
+    def get_active_players(self, include_bye=False) -> list[Player]:
         return [
             p
             for p in self._players
             if p not in self._dropped_players and (p != "bye" or include_bye)
         ]
 
-    def get_pairing(self):
+    def get_pairing(self) -> list[Pair]:
         if len(self._round_results) == 0:
             return []
         return list(self._round_results[-1].keys())
 
-    def get_pairing_with_score(self):
+    def get_pairing_with_score(self) -> Iterable[tuple[Pair, Result]]:
         if len(self._round_results) == 0:
             return []
         return self._round_results[-1].items()
 
-    def get_round(self):
+    def get_round(self) -> int:
         return len(self._round_results)
 
-    def get_standings(self, include_bye):
-        standings = {
-            player: {
-                "points": 0,
-                "games_won": 0,
-                "games_played": 0,
-                "matches_played": 0,
-            }
-            for player in self._players
+    def get_standings(self, include_bye: bool) -> list[PlayerStats]:
+        standings: dict[Player, PlayerStats] = {
+            player: PlayerStats(player) for player in self._players
         }
 
         for round_results in self._round_results:
@@ -76,28 +90,26 @@ class Tournament:
                 if p1_games_won not in [0, 1, 2] or p2_games_won not in [0, 1, 2]:
                     continue
                 if p1_games_won > p2_games_won:
-                    standings[p1]["points"] += 3
+                    standings[p1].points += 3
                 elif p1_games_won == p2_games_won:
-                    standings[p1]["points"] += 1
-                    standings[p2]["points"] += 1
+                    standings[p1].points += 1
+                    standings[p2].points += 1
                 else:
-                    standings[p2]["points"] += 3
-                standings[p1]["games_won"] += p1_games_won
-                standings[p2]["games_won"] += p2_games_won
-                standings[p1]["games_played"] += p1_games_won + p2_games_won
-                standings[p2]["games_played"] += p1_games_won + p2_games_won
-                standings[p1]["matches_played"] += 1
-                standings[p2]["matches_played"] += 1
+                    standings[p2].points += 3
+                standings[p1].games_won += p1_games_won
+                standings[p2].games_won += p2_games_won
+                standings[p1].games_played += p1_games_won + p2_games_won
+                standings[p2].games_played += p1_games_won + p2_games_won
+                standings[p1].matches_played += 1
+                standings[p2].matches_played += 1
 
         # Calculate player match winrate
         for player in self._players:
             p = standings[player]
-            if p["matches_played"] == 0:
-                standings[player]["mw"] = -100
+            if p.matches_played == 0:
+                standings[player].mw = -100
             else:
-                standings[player]["mw"] = max(
-                    0.333, p["points"] / (3 * p["matches_played"])
-                )
+                standings[player].mw = max(0.333, p.points / (3 * p.matches_played))
 
         # Calculate opponent match winrate (OMW)
         for player in self._players:
@@ -108,19 +120,19 @@ class Tournament:
                 if player in match and "bye" not in match and result != (-1, -1)
             ]
             if not opponents:
-                standings[player]["omw"] = 0
+                standings[player].omw = 0
             else:
-                standings[player]["omw"] = mean(
-                    standings[opponent]["mw"] for opponent in opponents
+                standings[player].omw = mean(
+                    standings[opponent].mw for opponent in opponents
                 )
 
         # Calculate game winrate (GW)
         for player in self._players:
             p = standings[player]
-            if p["games_played"] == 0:
-                standings[player]["gw"] = -100
+            if p.games_played == 0:
+                standings[player].gw = -100
             else:
-                standings[player]["gw"] = max(0.333, p["games_won"] / p["games_played"])
+                standings[player].gw = max(0.333, p.games_won / p.games_played)
 
         # Calculate opponent game winrate (OGW)
         for player in self._players:
@@ -131,22 +143,22 @@ class Tournament:
                 if player in match and "bye" not in match and result != (-1, -1)
             ]
             if not opponents:
-                standings[player]["ogw"] = 0
+                standings[player].ogw = 0
             else:
-                standings[player]["ogw"] = mean(
-                    standings[opponent]["gw"] for opponent in opponents
+                standings[player].ogw = mean(
+                    standings[opponent].gw for opponent in opponents
                 )
 
         # Sort standings by points and OMW
-        standings = [
-            {"name": player, **stats}
+        standingsList: list[PlayerStats] = [
+            stats
             for player, stats in standings.items()
             if player != "bye" or include_bye
         ]
-        standings.sort(key=lambda x: (-x["points"], -x["omw"], -x["gw"], -x["ogw"]))
-        return standings
+        standingsList.sort(key=lambda x: (-x.points, -x.omw, -x.gw, -x.ogw))
+        return standingsList
 
-    def mod_submit_results(self, round_result):
+    def mod_submit_results(self, round_result: RoundResult) -> bool:
         if list(round_result.keys()) != self.get_pairing():
             warn("wrong pairing")
             return False
@@ -158,7 +170,7 @@ class Tournament:
 
         return True
 
-    def mod_shuffle_seatings(self):
+    def mod_shuffle_seatings(self) -> bool:
         if self.get_round() >= 2:
             warn("won't shuffle seatings after round 1")
             return False
@@ -167,7 +179,7 @@ class Tournament:
         self.mod_replace_pairing()
         return True
 
-    def mod_add_player(self, player_to_add):
+    def mod_add_player(self, player_to_add: str) -> str:
         player_to_add = player_to_add.replace("/", "|")
         player_to_add = player_to_add.replace("?", "")
         player_to_add = player_to_add.replace("%", "")
@@ -188,7 +200,7 @@ class Tournament:
 
         return player_to_add
 
-    def mod_drop_player(self, player_to_drop):
+    def mod_drop_player(self, player_to_drop: Player) -> bool:
         if player_to_drop not in self._players or player_to_drop == "bye":
             return False
 
@@ -196,7 +208,7 @@ class Tournament:
         self.mod_replace_pairing()
         return True
 
-    def mod_swap_players(self, player1, player2):
+    def mod_swap_players(self, player1: Player, player2: Player) -> None:
         def f(p1, p2, g1, g2):
             if p1 == player1:
                 return ((player2, p2), (-1, -1))
@@ -212,7 +224,9 @@ class Tournament:
             f(p1, p2, g1, g2) for (p1, p2), (g1, g2) in self._round_results[-1].items()
         )
 
-    def mod_submit_result(self, p1, p2, p1_games_won, p2_games_won):
+    def mod_submit_result(
+        self, p1: Player, p2: Player, p1_games_won: int, p2_games_won: int
+    ) -> bool:
         if (p1, p2) not in self.get_pairing():
             warn(f"{p1} vs {p2} not in pairing")
             return False
@@ -229,11 +243,12 @@ class Tournament:
             s1 in (0, 1, 2) and s2 in (0, 1, 2)
             for _, (s1, s2) in self.get_pairing_with_score()
         ):
-            return self.mod_create_pairing()
+            self.mod_create_pairing()
+            return True
 
         return True
 
-    def mod_create_pairing(self):
+    def mod_create_pairing(self) -> None:
         self._round_start_times.append(now_Berlin())
         if self.get_round() == 0:
             players = self.get_active_players(include_bye=True)
@@ -247,7 +262,6 @@ class Tournament:
                     for i in range(n_halved)
                 )
             )
-            return True
 
         # Swiss pairing using maximum weight matching
         standings = self.get_standings(include_bye=True)
@@ -255,7 +269,7 @@ class Tournament:
         if len(active_players) % 2 == 1:
             active_players.remove("bye")
         # get players in standings order
-        players = [p["name"] for p in standings if p["name"] in active_players]
+        players = [p.name for p in standings if p.name in active_players]
         pairing_history = {
             frozenset(match)
             for round_results in self._round_results
@@ -270,10 +284,10 @@ class Tournament:
             for p2 in players[i + 1 :]:
                 if frozenset({p1, p2}) not in pairing_history:
                     score_diff = abs(
-                        standings[i]["points"] - standings[players.index(p2)]["points"]
+                        standings[i].points - standings[players.index(p2)].points
                     )
                     score_sum = (
-                        standings[i]["points"] + standings[players.index(p2)]["points"]
+                        standings[i].points + standings[players.index(p2)].points
                     )
                     G.add_edge(p1, p2, weight=-(score_diff**2 * score_sum))
 
@@ -283,13 +297,9 @@ class Tournament:
         self._round_results.append(
             OrderedDict(pair_and_result(p1, p2) for p1, p2 in pairings)
         )
-        return True
 
-    def mod_replace_pairing(self, new_player=None):
-        if (
-            new_player is not None
-            and len(self.get_active_players(include_bye=True)) % 2 == 1
-        ):
+    def mod_replace_pairing(self, new_player: str = "") -> None:
+        if new_player != "" and len(self.get_active_players(include_bye=True)) % 2 == 1:
             # new player replaces bye
             def replace_bye(pair, result):
                 a, b = pair
@@ -303,7 +313,6 @@ class Tournament:
                 replace_bye(pair, result)
                 for pair, result in self._round_results[-1].items()
             )
-            return True
 
         if self.get_round() >= 1:
             self._round_results.pop()
