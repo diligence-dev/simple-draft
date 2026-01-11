@@ -1,6 +1,6 @@
 from collections import defaultdict
 from flask import Flask, request, render_template, redirect, url_for
-from Tournament import Tournament, now_Berlin
+from Tournament import Match, Tournament, now_Berlin
 import copy
 import datetime
 import pickle
@@ -13,7 +13,7 @@ app = Flask(__name__)
 global_state_file = f"{datetime.date.today().isoformat()}_events.pickle"
 
 
-def empty_event():
+def empty_event() -> dict[str, Tournament | list]:
     return {"x": Tournament([]), "previous_states": []}
 
 
@@ -30,7 +30,7 @@ except (FileNotFoundError, pickle.UnpicklingError) as e:
 
 
 # event id to Tournament
-def id2t(event_id):
+def id2t(event_id) -> Tournament:
     return events[event_id]["x"]
 
 
@@ -88,7 +88,7 @@ def tournament_organizer(event_id):
         round_results=[
             (p1, p2, s1, s2)
             for round_result in id2t(event_id).get_round_results()
-            for (p1, p2), (s1, s2) in round_result.items()
+            for p1, p2, s1, s2 in round_result
         ],
         url=url,
         round_start_time=id2t(event_id).get_round_start_time(),
@@ -113,11 +113,15 @@ def shuffle_seatings(event_id):
 @app.route("/<int:event_id>/submit_results", methods=["POST"])
 def submit_results(event_id):
     save_state(event_id)
-    round_result = {}
-    for i, (p1, p2) in enumerate(id2t(event_id).get_pairing()):
-        p1_games_won = int(request.form.get(f"p1_games_won_{i+1}"))
-        p2_games_won = int(request.form.get(f"p2_games_won_{i+1}"))
-        round_result[(p1, p2)] = (p1_games_won, p2_games_won)
+    round_result = [
+        Match(
+            p1,
+            p2,
+            int(request.form.get(f"p1_games_won_{i+1}")),
+            int(request.form.get(f"p2_games_won_{i+1}")),
+        )
+        for i, (p1, p2) in enumerate(id2t(event_id).get_pairing())
+    ]
 
     id2t(event_id).mod_submit_results(round_result)
 
@@ -188,9 +192,9 @@ def player(event_id, name):
 
     match = next(
         (
-            (p1, p2, s1, s2)
-            for (p1, p2), (s1, s2) in id2t(event_id).get_pairing_with_score()
-            if name in (p1, p2)
+            (m.p1, m.p2, m.p1_games_won, m.p2_games_won)
+            for m in id2t(event_id).get_pairing_with_score()
+            if m.includes(name)
         ),
         None,
     )

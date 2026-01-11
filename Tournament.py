@@ -1,30 +1,60 @@
-from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime
 from random import sample
 from statistics import mean
-from typing import Iterable
 from warnings import warn
 from zoneinfo import ZoneInfo
-import networkx as nx
+import networkx as nx  # type: ignore
 
 Player = str
 Pair = tuple[Player, Player]
 Result = tuple[int, int]
-RoundResult = dict[Pair, Result]
+
+
+@dataclass
+class Match:
+    p1: Player
+    p2: Player
+    p1_games_won: int = -1
+    p2_games_won: int = -1
+
+    def includes(self, player: Player) -> bool:
+        return player in (self.p1, self.p2)
+
+    def is_finished(self) -> bool:
+        return (
+            0 <= self.p1_games_won + self.p2_games_won <= 3
+            and self.p1_games_won >= 0
+            and self.p2_games_won >= 0
+        )
+
+    def __iter__(self):
+        yield self.p1
+        yield self.p2
+        yield self.p1_games_won
+        yield self.p2_games_won
 
 
 def now_Berlin() -> datetime:
     return datetime.now(ZoneInfo("Europe/Berlin"))
 
 
-def pair_and_result(p1: str, p2: str) -> tuple[Pair, Result]:
+def pair_and_result(p1: str, p2: str) -> Match:
     if p1 == "bye":
-        return ((p1, p2), (0, 2))
+        return Match(p1, p2, 0, 2)
     elif p2 == "bye":
-        return ((p1, p2), (2, 0))
+        return Match(p1, p2, 2, 0)
     else:
-        return ((p1, p2), (-1, -1))
+        return Match(p1, p2, -1, -1)
+
+
+def find_opponents(round_results: list[list[Match]], player: Player) -> list[Player]:
+    return [
+        match.p1 if match.p2 == player else match.p1
+        for rr in round_results
+        for match in rr
+        if match.includes(player) and not match.includes("bye") and match.is_finished()
+    ]
 
 
 @dataclass
@@ -43,13 +73,13 @@ class PlayerStats:
 class Tournament:
     def __init__(self, players: list[Player]):
         self._dropped_players: list[Player] = []
-        self._round_results: list[RoundResult] = []
+        self._round_results: list[list[Match]] = []
         self._players: list[Player] = ["bye"]
         self._round_start_times: list[datetime] = []
         for player in players:
             self.mod_add_player(player)
 
-    def get_round_results(self) -> list[dict[tuple[str, str], tuple[int, int]]]:
+    def get_round_results(self) -> list[list[Match]]:
         return self._round_results
 
     def get_round_start_time(self, formatted=True) -> str | datetime:
@@ -70,12 +100,14 @@ class Tournament:
     def get_pairing(self) -> list[Pair]:
         if len(self._round_results) == 0:
             return []
-        return list(self._round_results[-1].keys())
+        return [(m.p1, m.p2) for m in self._round_results[-1]]
 
-    def get_pairing_with_score(self) -> Iterable[tuple[Pair, Result]]:
+    def get_pairing_with_score(
+        self,
+    ) -> list[Match]:
         if len(self._round_results) == 0:
             return []
-        return self._round_results[-1].items()
+        return self._round_results[-1]
 
     def get_round(self) -> int:
         return len(self._round_results)
@@ -86,22 +118,22 @@ class Tournament:
         }
 
         for round_results in self._round_results:
-            for (p1, p2), (p1_games_won, p2_games_won) in round_results.items():
-                if p1_games_won not in [0, 1, 2] or p2_games_won not in [0, 1, 2]:
+            for m in round_results:
+                if m.p1_games_won not in [0, 1, 2] or m.p2_games_won not in [0, 1, 2]:
                     continue
-                if p1_games_won > p2_games_won:
-                    standings[p1].points += 3
-                elif p1_games_won == p2_games_won:
-                    standings[p1].points += 1
-                    standings[p2].points += 1
+                if m.p1_games_won > m.p2_games_won:
+                    standings[m.p1].points += 3
+                elif m.p1_games_won == m.p2_games_won:
+                    standings[m.p1].points += 1
+                    standings[m.p2].points += 1
                 else:
-                    standings[p2].points += 3
-                standings[p1].games_won += p1_games_won
-                standings[p2].games_won += p2_games_won
-                standings[p1].games_played += p1_games_won + p2_games_won
-                standings[p2].games_played += p1_games_won + p2_games_won
-                standings[p1].matches_played += 1
-                standings[p2].matches_played += 1
+                    standings[m.p2].points += 3
+                standings[m.p1].games_won += m.p1_games_won
+                standings[m.p2].games_won += m.p2_games_won
+                standings[m.p1].games_played += m.p1_games_won + m.p2_games_won
+                standings[m.p2].games_played += m.p1_games_won + m.p2_games_won
+                standings[m.p1].matches_played += 1
+                standings[m.p2].matches_played += 1
 
         # Calculate player match winrate
         for player in self._players:
@@ -113,12 +145,7 @@ class Tournament:
 
         # Calculate opponent match winrate (OMW)
         for player in self._players:
-            opponents = [
-                match[0] if match[1] == player else match[1]
-                for round_results in self._round_results
-                for match, result in round_results.items()
-                if player in match and "bye" not in match and result != (-1, -1)
-            ]
+            opponents = find_opponents(self._round_results, player)
             if not opponents:
                 standings[player].omw = 0
             else:
@@ -136,12 +163,7 @@ class Tournament:
 
         # Calculate opponent game winrate (OGW)
         for player in self._players:
-            opponents = [
-                match[0] if match[1] == player else match[1]
-                for round_results in self._round_results
-                for match, result in round_results.items()
-                if player in match and "bye" not in match and result != (-1, -1)
-            ]
+            opponents = find_opponents(self._round_results, player)
             if not opponents:
                 standings[player].ogw = 0
             else:
@@ -158,13 +180,13 @@ class Tournament:
         standingsList.sort(key=lambda x: (-x.points, -x.omw, -x.gw, -x.ogw))
         return standingsList
 
-    def mod_submit_results(self, round_result: RoundResult) -> bool:
-        if list(round_result.keys()) != self.get_pairing():
+    def mod_submit_results(self, round_result: list[Match]) -> bool:
+        if [(m.p1, m.p2) for m in round_result] != self.get_pairing():
             warn("wrong pairing")
             return False
 
-        for (p1, p2), (games_won_p1, games_won_p2) in round_result.items():
-            ok = self.mod_submit_result(p1, p2, games_won_p1, games_won_p2)
+        for m in round_result:
+            ok = self.mod_submit_result(m.p1, m.p2, m.p1_games_won, m.p2_games_won)
             if not ok:
                 return False
 
@@ -209,20 +231,18 @@ class Tournament:
         return True
 
     def mod_swap_players(self, player1: Player, player2: Player) -> None:
-        def f(p1, p2, g1, g2):
-            if p1 == player1:
-                return ((player2, p2), (-1, -1))
-            if p2 == player1:
-                return ((p1, player2), (-1, -1))
-            if p1 == player2:
-                return ((player1, p2), (-1, -1))
-            if p2 == player2:
-                return ((p1, player1), (-1, -1))
-            return ((p1, p2), (g1, g2))
+        def f(m):
+            if m.p1 == player1:
+                return Match(player2, m.p2, -1, -1)
+            if m.p2 == player1:
+                return Match(m.p1, player2, -1, -1)
+            if m.p1 == player2:
+                return Match(player1, m.p2, -1, -1)
+            if m.p2 == player2:
+                return Match(m.p1, player1, -1, -1)
+            return m
 
-        self._round_results[-1] = dict(
-            f(p1, p2, g1, g2) for (p1, p2), (g1, g2) in self._round_results[-1].items()
-        )
+        self._round_results[-1] = [f(match) for match in self._round_results[-1]]
 
     def mod_submit_result(
         self, p1: Player, p2: Player, p1_games_won: int, p2_games_won: int
@@ -237,12 +257,17 @@ class Tournament:
             warn("total games > 3")
             return False
 
-        self._round_results[-1][(p1, p2)] = (p1_games_won, p2_games_won)
+        def replace_result(m, p1, p2, p1_games_won, p2_games_won):
+            if m.p1 == p1 and m.p2 == p2:
+                return Match(p1, p2, p1_games_won, p2_games_won)
+            return m
 
-        if all(
-            s1 in (0, 1, 2) and s2 in (0, 1, 2)
-            for _, (s1, s2) in self.get_pairing_with_score()
-        ):
+        self._round_results[-1] = [
+            replace_result(match, p1, p2, p1_games_won, p2_games_won)
+            for match in self._round_results[-1]
+        ]
+
+        if all(match.is_finished() for match in self.get_pairing_with_score()):
             self.mod_create_pairing()
             return True
 
@@ -257,10 +282,10 @@ class Tournament:
 
             n_halved = int(len(players) / 2)
             self._round_results.append(
-                OrderedDict(
+                [
                     pair_and_result(players[i], players[i + n_halved])
                     for i in range(n_halved)
-                )
+                ]
             )
 
         # Swiss pairing using maximum weight matching
@@ -271,7 +296,7 @@ class Tournament:
         # get players in standings order
         players = [p.name for p in standings if p.name in active_players]
         pairing_history = {
-            frozenset(match)
+            frozenset({match.p1, match.p2})
             for round_results in self._round_results
             for match in round_results
         }
@@ -291,28 +316,24 @@ class Tournament:
                     )
                     G.add_edge(p1, p2, weight=-(score_diff**2 * score_sum))
 
-        pairings = list(nx.max_weight_matching(G, maxcardinality=True))
+        pairings: list[Pair] = list(nx.max_weight_matching(G, maxcardinality=True))
 
         # Add current pairings to x
-        self._round_results.append(
-            OrderedDict(pair_and_result(p1, p2) for p1, p2 in pairings)
-        )
+        self._round_results.append([pair_and_result(p1, p2) for p1, p2 in pairings])
 
     def mod_replace_pairing(self, new_player: str = "") -> None:
         if new_player != "" and len(self.get_active_players(include_bye=True)) % 2 == 1:
             # new player replaces bye
-            def replace_bye(pair, result):
-                a, b = pair
-                if a == "bye":
-                    return (new_player, b), (-1, -1)
-                elif b == "bye":
-                    return (a, new_player), (-1, -1)
-                return (a, b), result
+            def replace_bye(m: Match) -> Match:
+                if m.p1 == "bye":
+                    return Match(new_player, m.p2, -1, -1)
+                elif m.p2 == "bye":
+                    return Match(m.p1, new_player, -1, -1)
+                return m
 
-            self._round_results[-1] = OrderedDict(
-                replace_bye(pair, result)
-                for pair, result in self._round_results[-1].items()
-            )
+            self._round_results[-1] = [
+                replace_bye(match) for match in self._round_results[-1]
+            ]
 
         if self.get_round() >= 1:
             self._round_results.pop()
