@@ -287,6 +287,7 @@ class Tournament:
                     for i in range(n_halved)
                 ]
             )
+            return None
 
         # Swiss pairing using maximum weight matching
         standings = self.get_standings(include_bye=True)
