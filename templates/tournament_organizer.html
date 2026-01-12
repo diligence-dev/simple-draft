@@ -116,8 +116,8 @@
             </tbody>
         </table>
 
-        {% for round_result in round_results %}
-        <div>{{ round_result[0] }} {{ round_result[2] }} - {{ round_result[3] }} {{ round_result[1] }}</div>
+        {% for m in round_results %}
+        <div>{{ m.p1 }} {{ m.p1_games_won }} - {{ m.p2 }} {{ m.p2_games_won }} | {{ m.duration_seconds() }} sec</div>
         {% endfor %}
 
         <h2>Actions</h2>

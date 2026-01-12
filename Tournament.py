@@ -284,15 +284,10 @@ class Tournament:
             warn("total games > 3")
             return False
 
-        def replace_result(m: Match, p1, p2, p1_games_won, p2_games_won):
+        for m in self._round_results[-1]:
             if m.p1 == p1 and m.p2 == p2:
-                return m.mod_finish(p1_games_won, p2_games_won)
-            return m
-
-        self._round_results[-1] = [
-            replace_result(match, p1, p2, p1_games_won, p2_games_won)
-            for match in self._round_results[-1]
-        ]
+                m.mod_finish(p1_games_won, p2_games_won)
+                break
 
         if all(match.is_finished() for match in self.get_pairing_with_score()):
             self.mod_create_pairing()

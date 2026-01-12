@@ -86,9 +86,9 @@ def tournament_organizer(event_id):
         round_number=id2t(event_id).get_round(),
         event_id=event_id,
         round_results=[
-            (p1, p2, s1, s2)
+            match
             for round_result in id2t(event_id).get_round_results()
-            for p1, p2, s1, s2 in round_result
+            for match in round_result
         ],
         url=url,
         round_start_time=id2t(event_id).get_round_start_time(),
