@@ -19,17 +19,25 @@ def now_Berlin() -> datetime:
 class Match:
     p1: Player
     p2: Player
-    p1_games_won: int = -1
-    p2_games_won: int = -1
-    t_start: datetime = now_Berlin()  # placeholder, overwritten by post_init
-    t_end: datetime | None = None
+    p1_games_won: int
+    p2_games_won: int
+    t_start: datetime
+    t_end: datetime | None
 
-    def __post_init__(self):
-        self.t_start = now_Berlin()
+    def __init__(
+        self, p1, p2, p1_games_won=-1, p2_games_won=-1, t_start=None, t_end=None
+    ):
+        self.p1 = p1
+        self.p2 = p2
+        self.p1_games_won = p1_games_won
+        self.p2_games_won = p2_games_won
+        self.t_start = now_Berlin() if t_start is None else t_start
+        self.t_end = t_end
 
     def mod_finish(self, p1_games_won: int, p2_games_won: int) -> bool:
         if (
-            0 <= p1_games_won + p2_games_won <= 3
+            not self.is_finished()
+            and 0 <= p1_games_won + p2_games_won <= 3
             and p1_games_won >= 0
             and p2_games_won >= 0
         ):
@@ -67,10 +75,11 @@ class Match:
 
 
 def pair_and_result(p1: str, p2: str) -> Match:
+    now = now_Berlin()
     if p1 == "bye":
-        return Match(p1, p2, 0, 2)
+        return Match(p1, p2, 0, 2, t_start=now, t_end=now)
     elif p2 == "bye":
-        return Match(p1, p2, 2, 0)
+        return Match(p1, p2, 2, 0, t_start=now, t_end=now)
     else:
         return Match(p1, p2, -1, -1)
 
