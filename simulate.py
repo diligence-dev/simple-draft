@@ -3,20 +3,23 @@ from Tournament import set_now_Berlin_forced, Tournament, now_Berlin
 from datetime import timedelta
 from random import normalvariate, randint
 
+
 def roll(a, b):
     assert a <= b
-    x = normalvariate(mu = a + 0.5 * (b - a),
-                      sigma = 0.25 * (b - a))
+    x = normalvariate(mu=a + 0.5 * (b - a), sigma=0.25 * (b - a))
     if x < a:
         x = a
     elif x > b:
         x = b
     return x
 
-players = ["a", "b", "c", "d", "e", "f", "g"]
 
-def simulate_tournament():
-    mtpg = {p: timedelta(minutes=roll(5, 15)) for p in players} # mean time per game of a player
+def simulate_tournament(n_players):
+    players = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"][0:n_players]
+
+    mtpg = {
+        p: timedelta(minutes=roll(5, 15)) for p in players
+    }  # mean time per game of a player
 
     x = Tournament(players)
     for i in range(3):
@@ -62,7 +65,10 @@ def simulate_tournament():
     tournament_duration = tournament_end - tournament_start
     time_waited = {p: tournament_duration - time_played[p] for p in players}
 
-    total_hours_waited = sum(time_waited.values(), start = timedelta()).total_seconds() / 60 / 60
+    total_hours_waited = (
+        sum(time_waited.values(), start=timedelta()).total_seconds() / 60 / 60
+    )
     return total_hours_waited
 
-print(mean(simulate_tournament() for _ in range(100)))
+
+print(mean(simulate_tournament(7) for _ in range(100)))
