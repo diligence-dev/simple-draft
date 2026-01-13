@@ -16,7 +16,6 @@ def roll(a, b):
 players = ["a", "b", "c", "d", "e", "f", "g"]
 
 def simulate_tournament():
-
     mtpg = {p: timedelta(minutes=roll(5, 15)) for p in players} # mean time per game of a player
 
     x = Tournament(players)
@@ -66,4 +65,4 @@ def simulate_tournament():
     total_hours_waited = sum(time_waited.values(), start = timedelta()).total_seconds() / 60 / 60
     return total_hours_waited
 
-mean(simulate_tournament() for _ in range(100))
+print(mean(simulate_tournament() for _ in range(100)))
