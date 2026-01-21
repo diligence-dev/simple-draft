@@ -137,7 +137,10 @@ class Tournament:
         return [p for p in self._players if p not in self._dropped_players]
 
     def is_player_free(self, player) -> bool:
-        return not any(m.includes(player) for m in self.get_current_matches())
+        return (
+            not any(m.includes(player) for m in self.get_current_matches())
+            and self.n_matches_played(player) < 3
+        )
 
     def get_free_players(self) -> list[Player]:
         return [p for p in self.get_active_players() if self.is_player_free(p)]
@@ -146,7 +149,10 @@ class Tournament:
         return len([m for m in self.get_finished_matches() if m.includes(player)])
 
     def is_over(self) -> bool:
-        return sum(self.n_matches_played(p) for p in self.get_active_players()) + 1 >= len(self.get_active_players()) * 3
+        return (
+            sum(self.n_matches_played(p) for p in self.get_active_players())
+            >= len(self.get_active_players()) * 3 - 1
+        )
 
     def get_pairing(self) -> list[Pair]:
         return [(m.p1, m.p2) for m in self.get_current_matches()]
