@@ -22,7 +22,8 @@ def simulate_tournament(n_players):
     }  # mean time per game of a player
 
     x = Tournament(players)
-    while not x.is_finished():
+    while not x.is_over():
+        match_times = []
         for m in x.get_current_matches():
             p1 = m.p1
             p2 = m.p2
@@ -44,11 +45,15 @@ def simulate_tournament(n_players):
 
                 if p1_games_won == 2 or p2_games_won == 2:
                     break
+            match_times.append((match_time, p1, p2, p1_games_won, p2_games_won))
 
+        for match_time, p1, p2, p1_games_won, p2_games_won in sorted(match_times, key=lambda a: a[0]):
             set_now_Berlin_forced(m.t_start + match_time)
             x.mod_submit_result(p1, p2, p1_games_won, p2_games_won)
+    return x
 
-    time_played = {p: timedelta() for p in players}
+def total_hours_waited(x: Tournament):
+    time_played = {p: timedelta() for p in x.get_active_players()}
 
     for m in x.get_finished_matches():
         time_played[m.p1] += m.t_end - m.t_start
@@ -57,12 +62,14 @@ def simulate_tournament(n_players):
     tournament_start = min(m.t_start for m in x.get_finished_matches())
     tournament_end = max(m.t_end for m in x.get_finished_matches())
     tournament_duration = tournament_end - tournament_start
-    time_waited = {p: tournament_duration - time_played[p] for p in players}
+    time_waited = {p: tournament_duration - time_played[p] for p in x.get_active_players()}
 
-    total_hours_waited = (
+    return (
         sum(time_waited.values(), start=timedelta()).total_seconds() / 60 / 60
     )
-    return total_hours_waited
 
+# a = simulate_tournament(7)
+# for m in sorted(a.get_finished_matches(), key=lambda mat: mat.t_end):
+#     print(f"{m.t_start} - {m.t_end} --- {m.p1} - {m.p2}")
 
-print(mean(simulate_tournament(7) for _ in range(100)))
+print(mean(total_hours_waited(simulate_tournament(7)) for _ in range(100)))

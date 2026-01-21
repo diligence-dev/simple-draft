@@ -145,8 +145,8 @@ class Tournament:
     def n_matches_played(self, player) -> int:
         return len([m for m in self.get_finished_matches() if m.includes(player)])
 
-    def is_finished(self) -> bool:
-        return all(self.n_matches_played(p) >= 3 for p in self.get_active_players())
+    def is_over(self) -> bool:
+        return sum(self.n_matches_played(p) for p in self.get_active_players()) + 1 >= len(self.get_active_players()) * 3
 
     def get_pairing(self) -> list[Pair]:
         return [(m.p1, m.p2) for m in self.get_current_matches()]
