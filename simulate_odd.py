@@ -71,6 +71,9 @@ def total_hours_waited(x: Tournament):
     return sum(time_waited.values(), start=timedelta()).total_seconds() / 60 / 60
 
 
+def mean_match_duration(x: Tournament):
+    return mean((m.t_end - m.t_start).total_seconds() / 60 for m in x.get_finished_matches())
+
 # a = simulate_tournament(7)
 # for m in sorted(a.get_finished_matches(), key=lambda mat: mat.t_end):
 #     print(f"{m.t_start} - {m.t_end} --- {m.p1} - {m.p2}")
@@ -79,3 +82,9 @@ def total_hours_waited(x: Tournament):
 print(mean(total_hours_waited(simulate_tournament(7)) for _ in range(100)))
 # 7 player mean total_hours_waited 5.35h
 # 7 player mean tournament_duration 3.03h
+# mean match duration 0.80h
+
+# about 50% of waiting time while last match is playing.
+# if other players would just continue playing for fun:
+# total_hours_waited = tournament_duration because at
+# every point in time exactly one person is waiting
