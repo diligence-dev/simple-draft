@@ -7,10 +7,8 @@ from random import normalvariate, randint
 def roll(a, b):
     assert a <= b
     x = normalvariate(mu=a + 0.5 * (b - a), sigma=0.25 * (b - a))
-    if x < a:
-        x = a
-    elif x > b:
-        x = b
+    if x < a or x > b:
+        return roll(a, b)
     return x
 
 
@@ -75,5 +73,6 @@ def total_hours_waited(x: Tournament):
 # a = simulate_tournament(7)
 # for m in sorted(a.get_finished_matches(), key=lambda mat: mat.t_end):
 #     print(f"{m.t_start} - {m.t_end} --- {m.p1} - {m.p2}")
+# print(total_hours_waited(a))
 
 print(mean(total_hours_waited(simulate_tournament(7)) for _ in range(100)))
