@@ -7,10 +7,8 @@ from random import normalvariate, randint
 def roll(a, b):
     assert a <= b
     x = normalvariate(mu=a + 0.5 * (b - a), sigma=0.25 * (b - a))
-    if x < a:
-        x = a
-    elif x > b:
-        x = b
+    if x < a or x > b:
+        return roll(a, b)
     return x
 
 
