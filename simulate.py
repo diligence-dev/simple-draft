@@ -68,6 +68,7 @@ def total_hours_waited(x: Tournament):
             tournament_end = max(tournament_end, m.t_end)
 
     tournament_duration = tournament_end - tournament_start
+    # return tournament_duration.total_seconds() / 60 / 60
     time_waited = {p: tournament_duration - time_played[p] for p in players}
 
     total_hours_waited = (
@@ -80,4 +81,9 @@ def total_hours_waited(x: Tournament):
 #     print(f"{m.t_start} - {m.t_end} --- {m.p1} - {m.p2}")
 # print(total_hours_waited(a))
 
-print(mean(total_hours_waited(simulate_tournament(7)) for _ in range(100)))
+print(mean(total_hours_waited(simulate_tournament(8)) for _ in range(100)))
+# 7 player mean total_hours_waited 5.38h
+# 7 player mean tournament_duration 2.81h
+
+# 8 player mean total_hours_waited 3.97h
+# 8 player mean tournament_duration 2.88h
