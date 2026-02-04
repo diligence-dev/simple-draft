@@ -20,7 +20,8 @@ def simulate_tournament(n_players):
     }  # mean time per game of a player
 
     x = Tournament(players)
-    for i in range(3):
+    for round_number in (1, 2, 3):
+        results = []
         for p1, p2 in x.get_pairing():
             if "bye" in (p1, p2):
                 continue
@@ -43,10 +44,16 @@ def simulate_tournament(n_players):
                 if p1_games_won == 2 or p2_games_won == 2:
                     break
 
-            set_now_Berlin_forced(x.get_round_start_time(False) + match_time)
-            x.mod_submit_result(p1, p2, p1_games_won, p2_games_won)
-    x.get_standings(False)
+            results.append((x.get_round_start_time(False) + match_time,
+                            p1, p2, p1_games_won, p2_games_won))
 
+        for t, p1, p2, p1_games_won, p2_games_won in sorted(results, key=lambda r: r[0]):
+            set_now_Berlin_forced(t)
+            x.mod_submit_result(p1, p2, p1_games_won, p2_games_won)
+    return x
+
+def total_hours_waited(x: Tournament):
+    players = x.get_active_players()
     time_played = {p: timedelta() for p in players}
     tournament_start = x.get_round_start_time(False)
     tournament_end = x.get_round_start_time(False)
@@ -68,5 +75,9 @@ def simulate_tournament(n_players):
     )
     return total_hours_waited
 
+# a = simulate_tournament(7)
+# for m in [m for rr in a.get_round_results() for m in rr]:
+#     print(f"{m.t_start} - {m.t_end} --- {m.p1} - {m.p2}")
+# print(total_hours_waited(a))
 
-print(mean(simulate_tournament(7) for _ in range(100)))
+print(mean(total_hours_waited(simulate_tournament(7)) for _ in range(100)))
