@@ -66,6 +66,7 @@ def total_hours_waited(x: Tournament):
     time_waited = {
         p: tournament_duration - time_played[p] for p in x.get_active_players()
     }
+    # return tournament_duration.total_seconds() / 60 / 60
 
     return sum(time_waited.values(), start=timedelta()).total_seconds() / 60 / 60
 
@@ -76,3 +77,5 @@ def total_hours_waited(x: Tournament):
 # print(total_hours_waited(a))
 
 print(mean(total_hours_waited(simulate_tournament(7)) for _ in range(100)))
+# 7 player mean total_hours_waited 5.35h
+# 7 player mean tournament_duration 3.03h
