@@ -1,5 +1,5 @@
 from statistics import mean
-from Tournament import set_now_Berlin_forced, Tournament, now_Berlin
+from TournamentOdd import set_now_Berlin_forced, Tournament, now_Berlin
 from datetime import timedelta
 from random import normalvariate, randint
 
