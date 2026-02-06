@@ -1,5 +1,6 @@
 from statistics import mean
-from TournamentOdd import set_now_Berlin_forced, Tournament, now_Berlin
+from TournamentOdd import Tournament
+from TournamentBase import set_now_Berlin_forced
 from datetime import timedelta
 from random import normalvariate, randint
 
@@ -72,7 +73,10 @@ def total_hours_waited(x: Tournament):
 
 
 def mean_match_duration(x: Tournament):
-    return mean((m.t_end - m.t_start).total_seconds() / 60 for m in x.get_finished_matches())
+    return mean(
+        (m.t_end - m.t_start).total_seconds() / 60 for m in x.get_finished_matches()
+    )
+
 
 # a = simulate_tournament(7)
 # for m in sorted(a.get_finished_matches(), key=lambda mat: mat.t_end):

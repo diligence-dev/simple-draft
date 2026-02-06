@@ -1,20 +1,121 @@
+from dataclasses import dataclass
 from datetime import datetime
 from random import sample
 from statistics import mean
 from warnings import warn
+from zoneinfo import ZoneInfo
 import networkx as nx  # type: ignore
-from TournamentBase import (
-    Player,
-    Pair,
-    now_Berlin,
-    Match,
-    pair_and_result,
-    find_opponents,
-    PlayerStats,
-)
+
+Player = str
+Pair = tuple[Player, Player]
+
+now_Berlin_forced = None
 
 
-class Tournament:
+def set_now_Berlin_forced(x):
+    global now_Berlin_forced
+    now_Berlin_forced = x
+
+
+def now_Berlin() -> datetime:
+    return (
+        datetime.now(ZoneInfo("Europe/Berlin"))
+        if now_Berlin_forced is None
+        else now_Berlin_forced
+    )
+
+
+@dataclass
+class Match:
+    p1: Player
+    p2: Player
+    p1_games_won: int
+    p2_games_won: int
+    t_start: datetime
+    t_end: datetime | None
+
+    def __init__(
+        self, p1, p2, p1_games_won=-1, p2_games_won=-1, t_start=None, t_end=None
+    ):
+        self.p1 = p1
+        self.p2 = p2
+        self.p1_games_won = p1_games_won
+        self.p2_games_won = p2_games_won
+        self.t_start = now_Berlin() if t_start is None else t_start
+        self.t_end = t_end
+
+    def mod_finish(self, p1_games_won: int, p2_games_won: int) -> bool:
+        if (
+            not self.is_finished()
+            and 0 <= p1_games_won + p2_games_won <= 3
+            and p1_games_won >= 0
+            and p2_games_won >= 0
+        ):
+            self.t_end = now_Berlin()
+            if self.t_end < self.t_start:
+                warn(f"match ended before it began: ${self}")
+
+            self.p1_games_won = p1_games_won
+            self.p2_games_won = p2_games_won
+            return True
+        else:
+            return False
+
+    def duration_seconds(self) -> int | None:
+        if self.t_end is None:
+            return None
+        return (self.t_end - self.t_start).seconds
+
+    def includes(self, player: Player) -> bool:
+        return player in (self.p1, self.p2)
+
+    def is_finished(self) -> bool:
+        return (
+            0 <= self.p1_games_won + self.p2_games_won <= 3
+            and self.p1_games_won >= 0
+            and self.p2_games_won >= 0
+            and self.t_end is not None
+        )
+
+    def __iter__(self):
+        yield self.p1
+        yield self.p2
+        yield self.p1_games_won
+        yield self.p2_games_won
+
+
+def pair_and_result(p1: str, p2: str) -> Match:
+    now = now_Berlin()
+    if p1 == "bye":
+        return Match(p1, p2, 0, 2, t_start=now, t_end=now)
+    elif p2 == "bye":
+        return Match(p1, p2, 2, 0, t_start=now, t_end=now)
+    else:
+        return Match(p1, p2, -1, -1)
+
+
+def find_opponents(matches: list[Match], player: Player) -> list[Player]:
+    return [
+        match.p1 if match.p2 == player else match.p1
+        for match in matches
+        if match.includes(player) and not match.includes("bye") and match.is_finished()
+    ]
+
+
+@dataclass
+class PlayerStats:
+    name: str
+    points: int = 0
+    games_won: int = 0
+    games_played: int = 0
+    matches_played: int = 0
+    mw: float = -99
+    omw: float = -99
+    gw: float = -99
+    ogw: float = -99
+
+
+class TournamentBase:
     def __init__(self, players: list[Player]):
         self._dropped_players: list[Player] = []
         self._round_results: list[list[Match]] = []
@@ -89,9 +190,7 @@ class Tournament:
 
         # Calculate opponent match winrate (OMW)
         for player in self._players:
-            opponents = find_opponents(
-                [m for ms in self._round_results for m in ms], player
-            )
+            opponents = find_opponents(self._round_results, player)
             if not opponents:
                 standings[player].omw = 0
             else:
@@ -109,9 +208,7 @@ class Tournament:
 
         # Calculate opponent game winrate (OGW)
         for player in self._players:
-            opponents = find_opponents(
-                [m for ms in self._round_results for m in ms], player
-            )
+            opponents = find_opponents(self._round_results, player)
             if not opponents:
                 standings[player].ogw = 0
             else:

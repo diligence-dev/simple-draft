@@ -1,5 +1,6 @@
 from statistics import mean
-from Tournament import set_now_Berlin_forced, Tournament, now_Berlin
+from Tournament import Tournament
+from TournamentBase import set_now_Berlin_forced
 from datetime import timedelta
 from random import normalvariate, randint
 
@@ -44,13 +45,23 @@ def simulate_tournament(n_players):
                 if p1_games_won == 2 or p2_games_won == 2:
                     break
 
-            results.append((x.get_round_start_time(False) + match_time,
-                            p1, p2, p1_games_won, p2_games_won))
+            results.append(
+                (
+                    x.get_round_start_time(False) + match_time,
+                    p1,
+                    p2,
+                    p1_games_won,
+                    p2_games_won,
+                )
+            )
 
-        for t, p1, p2, p1_games_won, p2_games_won in sorted(results, key=lambda r: r[0]):
+        for t, p1, p2, p1_games_won, p2_games_won in sorted(
+            results, key=lambda r: r[0]
+        ):
             set_now_Berlin_forced(t)
             x.mod_submit_result(p1, p2, p1_games_won, p2_games_won)
     return x
+
 
 def total_hours_waited(x: Tournament):
     players = x.get_active_players()
@@ -75,6 +86,7 @@ def total_hours_waited(x: Tournament):
         sum(time_waited.values(), start=timedelta()).total_seconds() / 60 / 60
     )
     return total_hours_waited
+
 
 # a = simulate_tournament(7)
 # for m in [m for rr in a.get_round_results() for m in rr]:
