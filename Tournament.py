@@ -11,15 +11,18 @@ from TournamentBase import (
     pair_and_result,
     find_opponents,
     PlayerStats,
+    TournamentBase,
 )
 
 
-class Tournament:
+class Tournament(TournamentBase):
+    _round_start_times: list[datetime]
+
     def __init__(self, players: list[Player]):
-        self._dropped_players: list[Player] = []
-        self._round_results: list[list[Match]] = []
-        self._players: list[Player] = ["bye"]
-        self._round_start_times: list[datetime] = []
+        self._dropped_players = []
+        self._round_results = []
+        self._players = ["bye"]
+        self._round_start_times = []
         for player in players:
             self.mod_add_player(player)
 

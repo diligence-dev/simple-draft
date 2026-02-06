@@ -9,17 +9,18 @@ from TournamentBase import (
     Match,
     pair_and_result,
     find_opponents,
+    TournamentBase,
 )
 
 
-class Tournament:
+class TournamentOdd(TournamentBase):
     def __init__(self, players: list[Player]):
         self._dropped_players: list[Player] = []
         self._matches: list[Match] = []
         self._players: list[Player] = []
+
         # for player in players:
         #     self.mod_add_player(player)
-
         self._players = players
         self.mod_create_pairing()
 

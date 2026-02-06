@@ -116,13 +116,9 @@ class PlayerStats:
 
 
 class TournamentBase:
-    def __init__(self, players: list[Player]):
-        self._dropped_players: list[Player] = []
-        self._round_results: list[list[Match]] = []
-        self._players: list[Player] = ["bye"]
-        self._round_start_times: list[datetime] = []
-        for player in players:
-            self.mod_add_player(player)
+    _dropped_players: list[Player]
+    _round_results: list[list[Match]]
+    _players: list[Player]
 
     def get_round_results(self) -> list[list[Match]]:
         return self._round_results
