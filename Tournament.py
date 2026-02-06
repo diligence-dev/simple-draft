@@ -34,17 +34,8 @@ class Tournament(TournamentBase):
         )
         return t.strftime("%H:%M") if formatted else t
 
-    def get_active_players(self, include_bye=False) -> list[Player]:
-        return [
-            p
-            for p in self._players
-            if p not in self._dropped_players and (p != "bye" or include_bye)
-        ]
-
-    def get_pairing(self) -> list[Pair]:
-        if len(self._round_results) == 0:
-            return []
-        return [(m.p1, m.p2) for m in self._round_results[-1]]
+    def get_current_matches(self) -> list[Match]:
+        return self._round_results[-1]
 
     def get_pairing_with_score(
         self,

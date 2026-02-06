@@ -123,14 +123,6 @@ class TournamentBase:
     def get_finished_matches(self) -> list[Match]:
         return [m for ms in self._round_results for m in ms if m.is_finished()]
 
-    def get_round_start_time(self, formatted=True) -> str | datetime:
-        t = (
-            now_Berlin()
-            if len(self._round_start_times) == 0
-            else self._round_start_times[-1]
-        )
-        return t.strftime("%H:%M") if formatted else t
-
     def get_active_players(self, include_bye=False) -> list[Player]:
         return [
             p
@@ -138,10 +130,11 @@ class TournamentBase:
             if p not in self._dropped_players and (p != "bye" or include_bye)
         ]
 
+    def get_current_matches(self) -> list[Match]:
+        raise "get_current_matches must be overwritten"
+
     def get_pairing(self) -> list[Pair]:
-        if len(self._round_results) == 0:
-            return []
-        return [(m.p1, m.p2) for m in self._round_results[-1]]
+        return [(m.p1, m.p2) for m in self.get_current_matches()]
 
     def get_pairing_with_score(
         self,

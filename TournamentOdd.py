@@ -27,9 +27,6 @@ class TournamentOdd(TournamentBase):
     def get_current_matches(self) -> list[Match]:
         return [m for m in self._round_results[0] if not m.is_finished()]
 
-    def get_active_players(self) -> list[Player]:
-        return [p for p in self._players if p not in self._dropped_players]
-
     def is_player_free(self, player) -> bool:
         return (
             not any(m.includes(player) for m in self.get_current_matches())
@@ -47,9 +44,6 @@ class TournamentOdd(TournamentBase):
             sum(self.n_matches_played(p) for p in self.get_active_players())
             >= len(self.get_active_players()) * 3 - 1
         )
-
-    def get_pairing(self) -> list[Pair]:
-        return [(m.p1, m.p2) for m in self.get_current_matches()]
 
     def get_standings(self) -> list[PlayerStats]:
         standings: dict[Player, PlayerStats] = {
