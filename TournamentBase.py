@@ -136,16 +136,6 @@ class TournamentBase:
     def get_pairing(self) -> list[Pair]:
         return [(m.p1, m.p2) for m in self.get_current_matches()]
 
-    def get_pairing_with_score(
-        self,
-    ) -> list[Match]:
-        if len(self._round_results) == 0:
-            return []
-        return self._round_results[-1]
-
-    def get_round(self) -> int:
-        return len(self._round_results)
-
     def get_standings(self, include_bye: bool) -> list[PlayerStats]:
         standings: dict[Player, PlayerStats] = {
             player: PlayerStats(player) for player in self._players
@@ -296,7 +286,7 @@ class TournamentBase:
                 m.mod_finish(p1_games_won, p2_games_won)
                 break
 
-        if all(match.is_finished() for match in self.get_pairing_with_score()):
+        if all(match.is_finished() for match in self.get_current_matches()):
             self.mod_create_pairing()
             return True
 

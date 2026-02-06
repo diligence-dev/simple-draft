@@ -81,7 +81,7 @@ def tournament_organizer(event_id):
         "tournament_organizer.html",
         players=id2t(event_id).get_active_players(include_bye=True),
         pairing=id2t(event_id).get_pairing(),
-        pairing_with_score=id2t(event_id).get_pairing_with_score(),
+        pairing_with_score=id2t(event_id).get_current_matches(),
         standings=id2t(event_id).get_standings(include_bye=True),
         round_number=id2t(event_id).get_round(),
         event_id=event_id,
@@ -189,7 +189,7 @@ def player(event_id, name):
     match = next(
         (
             (m.p1, m.p2, m.p1_games_won, m.p2_games_won)
-            for m in id2t(event_id).get_pairing_with_score()
+            for m in id2t(event_id).get_current_matches()
             if m.includes(name)
         ),
         None,

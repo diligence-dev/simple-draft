@@ -35,11 +35,6 @@ class Tournament(TournamentBase):
         return t.strftime("%H:%M") if formatted else t
 
     def get_current_matches(self) -> list[Match]:
-        return self._round_results[-1]
-
-    def get_pairing_with_score(
-        self,
-    ) -> list[Match]:
         if len(self._round_results) == 0:
             return []
         return self._round_results[-1]
@@ -201,7 +196,7 @@ class Tournament(TournamentBase):
                 m.mod_finish(p1_games_won, p2_games_won)
                 break
 
-        if all(match.is_finished() for match in self.get_pairing_with_score()):
+        if all(match.is_finished() for match in self.get_current_matches()):
             self.mod_create_pairing()
             return True
 
