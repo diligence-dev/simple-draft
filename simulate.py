@@ -69,14 +69,13 @@ def total_hours_waited(x: Tournament):
     tournament_start = x.get_round_start_time(False)
     tournament_end = x.get_round_start_time(False)
 
-    for round_result in x.get_round_results()[0:3]:
-        for m in round_result:
-            if m.includes("bye"):
-                continue
-            time_played[m.p1] += m.t_end - m.t_start
-            time_played[m.p2] += m.t_end - m.t_start
-            tournament_start = min(tournament_start, m.t_start)
-            tournament_end = max(tournament_end, m.t_end)
+    for m in x.get_finished_matches():
+        if m.includes("bye"):
+            continue
+        time_played[m.p1] += m.t_end - m.t_start
+        time_played[m.p2] += m.t_end - m.t_start
+        tournament_start = min(tournament_start, m.t_start)
+        tournament_end = max(tournament_end, m.t_end)
 
     tournament_duration = tournament_end - tournament_start
     # return tournament_duration.total_seconds() / 60 / 60
@@ -89,7 +88,7 @@ def total_hours_waited(x: Tournament):
 
 
 # a = simulate_tournament(7)
-# for m in [m for rr in a.get_round_results() for m in rr]:
+# for m in a.get_finished_matches():
 #     print(f"{m.t_start} - {m.t_end} --- {m.p1} - {m.p2}")
 # print(total_hours_waited(a))
 

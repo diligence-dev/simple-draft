@@ -26,9 +26,6 @@ class Tournament(TournamentBase):
         for player in players:
             self.mod_add_player(player)
 
-    def get_round_results(self) -> list[list[Match]]:
-        return self._round_results
-
     def get_round_start_time(self, formatted=True) -> str | datetime:
         t = (
             now_Berlin()

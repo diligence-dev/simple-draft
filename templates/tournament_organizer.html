@@ -116,7 +116,7 @@
             </tbody>
         </table>
 
-        {% for m in round_results %}
+        {% for m in finished_matches %}
         <div>{{ m.p1 }} {{ m.p1_games_won }} - {{ m.p2 }} {{ m.p2_games_won }} | {{ m.duration_seconds() }} sec</div>
         {% endfor %}
 

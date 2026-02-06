@@ -15,20 +15,17 @@ from TournamentBase import (
 
 class TournamentOdd(TournamentBase):
     def __init__(self, players: list[Player]):
-        self._dropped_players: list[Player] = []
-        self._matches: list[Match] = []
-        self._players: list[Player] = []
+        self._dropped_players = []
+        self._round_results = [[]]
+        self._players = []
 
         # for player in players:
         #     self.mod_add_player(player)
         self._players = players
         self.mod_create_pairing()
 
-    def get_finished_matches(self) -> list[Match]:
-        return [m for m in self._matches if m.is_finished()]
-
     def get_current_matches(self) -> list[Match]:
-        return [m for m in self._matches if not m.is_finished()]
+        return [m for m in self._round_results[0] if not m.is_finished()]
 
     def get_active_players(self) -> list[Player]:
         return [p for p in self._players if p not in self._dropped_players]
@@ -193,11 +190,11 @@ class TournamentOdd(TournamentBase):
         return True
 
     def mod_create_pairing(self) -> None:
-        if len(self._matches) == 0:
+        if len(self._round_results[0]) == 0:
             players = self.get_active_players()
 
             n_halved = int(len(players) / 2)
-            self._matches = [
+            self._round_results[0] = [
                 pair_and_result(players[i], players[i + n_halved])
                 for i in range(n_halved)
             ]
@@ -231,7 +228,7 @@ class TournamentOdd(TournamentBase):
         pairings: list[Pair] = list(nx.max_weight_matching(G, maxcardinality=True))
 
         # Add current pairings to x
-        self._matches.extend(pair_and_result(p1, p2) for p1, p2 in pairings)
+        self._round_results[0].extend(pair_and_result(p1, p2) for p1, p2 in pairings)
 
     # def mod_replace_pairing(self, new_player: str = "") -> None:
     #     if new_player != "" and len(self.get_active_players(include_bye=True)) % 2 == 1:

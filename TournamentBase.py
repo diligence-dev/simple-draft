@@ -120,8 +120,8 @@ class TournamentBase:
     _round_results: list[list[Match]]
     _players: list[Player]
 
-    def get_round_results(self) -> list[list[Match]]:
-        return self._round_results
+    def get_finished_matches(self) -> list[Match]:
+        return [m for ms in self._round_results for m in ms if m.is_finished()]
 
     def get_round_start_time(self, formatted=True) -> str | datetime:
         t = (
