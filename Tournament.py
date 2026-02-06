@@ -9,8 +9,6 @@ from TournamentBase import (
     now_Berlin,
     Match,
     pair_and_result,
-    find_opponents,
-    PlayerStats,
     TournamentBase,
 )
 
@@ -41,78 +39,6 @@ class Tournament(TournamentBase):
 
     def get_round(self) -> int:
         return len(self._round_results)
-
-    def get_standings(self, include_bye: bool) -> list[PlayerStats]:
-        standings: dict[Player, PlayerStats] = {
-            player: PlayerStats(player) for player in self._players
-        }
-
-        for round_results in self._round_results:
-            for m in round_results:
-                if m.p1_games_won not in [0, 1, 2] or m.p2_games_won not in [0, 1, 2]:
-                    continue
-                if m.p1_games_won > m.p2_games_won:
-                    standings[m.p1].points += 3
-                elif m.p1_games_won == m.p2_games_won:
-                    standings[m.p1].points += 1
-                    standings[m.p2].points += 1
-                else:
-                    standings[m.p2].points += 3
-                standings[m.p1].games_won += m.p1_games_won
-                standings[m.p2].games_won += m.p2_games_won
-                standings[m.p1].games_played += m.p1_games_won + m.p2_games_won
-                standings[m.p2].games_played += m.p1_games_won + m.p2_games_won
-                standings[m.p1].matches_played += 1
-                standings[m.p2].matches_played += 1
-
-        # Calculate player match winrate
-        for player in self._players:
-            p = standings[player]
-            if p.matches_played == 0:
-                standings[player].mw = -100
-            else:
-                standings[player].mw = max(0.333, p.points / (3 * p.matches_played))
-
-        # Calculate opponent match winrate (OMW)
-        for player in self._players:
-            opponents = find_opponents(
-                [m for ms in self._round_results for m in ms], player
-            )
-            if not opponents:
-                standings[player].omw = 0
-            else:
-                standings[player].omw = mean(
-                    standings[opponent].mw for opponent in opponents
-                )
-
-        # Calculate game winrate (GW)
-        for player in self._players:
-            p = standings[player]
-            if p.games_played == 0:
-                standings[player].gw = -100
-            else:
-                standings[player].gw = max(0.333, p.games_won / p.games_played)
-
-        # Calculate opponent game winrate (OGW)
-        for player in self._players:
-            opponents = find_opponents(
-                [m for ms in self._round_results for m in ms], player
-            )
-            if not opponents:
-                standings[player].ogw = 0
-            else:
-                standings[player].ogw = mean(
-                    standings[opponent].gw for opponent in opponents
-                )
-
-        # Sort standings by points and OMW
-        standingsList: list[PlayerStats] = [
-            stats
-            for player, stats in standings.items()
-            if player != "bye" or include_bye
-        ]
-        standingsList.sort(key=lambda x: (-x.points, -x.omw, -x.gw, -x.ogw))
-        return standingsList
 
     def mod_submit_results(self, round_result: list[Match]) -> bool:
         if [(m.p1, m.p2) for m in round_result] != self.get_pairing():

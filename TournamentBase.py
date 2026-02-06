@@ -94,10 +94,11 @@ def pair_and_result(p1: str, p2: str) -> Match:
         return Match(p1, p2, -1, -1)
 
 
-def find_opponents(matches: list[Match], player: Player) -> list[Player]:
+def find_opponents(matches: list[list[Match]], player: Player) -> list[Player]:
     return [
         match.p1 if match.p2 == player else match.p1
-        for match in matches
+        for ms in matches
+        for match in ms
         if match.includes(player) and not match.includes("bye") and match.is_finished()
     ]
 
@@ -136,28 +137,25 @@ class TournamentBase:
     def get_pairing(self) -> list[Pair]:
         return [(m.p1, m.p2) for m in self.get_current_matches()]
 
-    def get_standings(self, include_bye: bool) -> list[PlayerStats]:
+    def get_standings(self, include_bye: bool = False) -> list[PlayerStats]:
         standings: dict[Player, PlayerStats] = {
             player: PlayerStats(player) for player in self._players
         }
 
-        for round_results in self._round_results:
-            for m in round_results:
-                if m.p1_games_won not in [0, 1, 2] or m.p2_games_won not in [0, 1, 2]:
-                    continue
-                if m.p1_games_won > m.p2_games_won:
-                    standings[m.p1].points += 3
-                elif m.p1_games_won == m.p2_games_won:
-                    standings[m.p1].points += 1
-                    standings[m.p2].points += 1
-                else:
-                    standings[m.p2].points += 3
-                standings[m.p1].games_won += m.p1_games_won
-                standings[m.p2].games_won += m.p2_games_won
-                standings[m.p1].games_played += m.p1_games_won + m.p2_games_won
-                standings[m.p2].games_played += m.p1_games_won + m.p2_games_won
-                standings[m.p1].matches_played += 1
-                standings[m.p2].matches_played += 1
+        for m in self.get_finished_matches():
+            if m.p1_games_won > m.p2_games_won:
+                standings[m.p1].points += 3
+            elif m.p1_games_won == m.p2_games_won:
+                standings[m.p1].points += 1
+                standings[m.p2].points += 1
+            else:
+                standings[m.p2].points += 3
+            standings[m.p1].games_won += m.p1_games_won
+            standings[m.p2].games_won += m.p2_games_won
+            standings[m.p1].games_played += m.p1_games_won + m.p2_games_won
+            standings[m.p2].games_played += m.p1_games_won + m.p2_games_won
+            standings[m.p1].matches_played += 1
+            standings[m.p2].matches_played += 1
 
         # Calculate player match winrate
         for player in self._players:

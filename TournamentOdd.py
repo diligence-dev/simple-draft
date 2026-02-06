@@ -1,14 +1,11 @@
 from random import sample
-from statistics import mean
 from warnings import warn
 import networkx as nx  # type: ignore
 from TournamentBase import (
     Player,
-    PlayerStats,
     Pair,
     Match,
     pair_and_result,
-    find_opponents,
     TournamentBase,
 )
 
@@ -44,71 +41,6 @@ class TournamentOdd(TournamentBase):
             sum(self.n_matches_played(p) for p in self.get_active_players())
             >= len(self.get_active_players()) * 3 - 1
         )
-
-    def get_standings(self) -> list[PlayerStats]:
-        standings: dict[Player, PlayerStats] = {
-            player: PlayerStats(player) for player in self._players
-        }
-
-        for m in self.get_finished_matches():
-            if m.p1_games_won not in [0, 1, 2] or m.p2_games_won not in [0, 1, 2]:
-                continue
-
-            if m.p1_games_won > m.p2_games_won:
-                standings[m.p1].points += 3
-            elif m.p1_games_won == m.p2_games_won:
-                standings[m.p1].points += 1
-                standings[m.p2].points += 1
-            else:
-                standings[m.p2].points += 3
-
-            standings[m.p1].games_won += m.p1_games_won
-            standings[m.p2].games_won += m.p2_games_won
-            standings[m.p1].games_played += m.p1_games_won + m.p2_games_won
-            standings[m.p2].games_played += m.p1_games_won + m.p2_games_won
-            standings[m.p1].matches_played += 1
-            standings[m.p2].matches_played += 1
-
-        # Calculate player match winrate
-        for player in self._players:
-            p = standings[player]
-            if p.matches_played == 0:
-                standings[player].mw = -100
-            else:
-                standings[player].mw = max(0.333, p.points / (3 * p.matches_played))
-
-        # Calculate opponent match winrate (OMW)
-        for player in self._players:
-            opponents = find_opponents(self.get_finished_matches(), player)
-            if not opponents:
-                standings[player].omw = 0
-            else:
-                standings[player].omw = mean(
-                    standings[opponent].mw for opponent in opponents
-                )
-
-        # Calculate game winrate (GW)
-        for player in self._players:
-            p = standings[player]
-            if p.games_played == 0:
-                standings[player].gw = -100
-            else:
-                standings[player].gw = max(0.333, p.games_won / p.games_played)
-
-        # Calculate opponent game winrate (OGW)
-        for player in self._players:
-            opponents = find_opponents(self.get_finished_matches(), player)
-            if not opponents:
-                standings[player].ogw = 0
-            else:
-                standings[player].ogw = mean(
-                    standings[opponent].gw for opponent in opponents
-                )
-
-        # Sort standings by points and OMW
-        standingsList: list[PlayerStats] = list(standings.values())
-        standingsList.sort(key=lambda x: (-x.points, -x.omw, -x.gw, -x.ogw))
-        return standingsList
 
     # def mod_shuffle_seatings(self) -> bool:
     #     self._players = sample(self._players, len(self._players))
