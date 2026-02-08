@@ -42,14 +42,6 @@ class TournamentOdd(TournamentBase):
             >= len(self.get_active_players()) * 3 - 1
         )
 
-    # def mod_drop_player(self, player_to_drop: Player) -> bool:
-    #     if player_to_drop not in self._players:
-    #         return False
-
-    #     self._dropped_players.append(player_to_drop)
-    #     self.mod_replace_pairing()
-    #     return True
-
     def mod_swap_players(self, player1: Player, player2: Player) -> None:
         ms1 = [m for m in self.get_current_matches() if m.includes(player1)]
         assert len(ms1) == 1

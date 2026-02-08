@@ -52,14 +52,6 @@ class Tournament(TournamentBase):
 
         return True
 
-    def mod_drop_player(self, player_to_drop: Player) -> bool:
-        if player_to_drop not in self._players or player_to_drop == "bye":
-            return False
-
-        self._dropped_players.append(player_to_drop)
-        self.mod_replace_pairing()
-        return True
-
     def mod_swap_players(self, player1: Player, player2: Player) -> None:
         def f(m):
             if m.p1 == player1:
