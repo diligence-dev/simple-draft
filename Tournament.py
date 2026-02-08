@@ -91,6 +91,9 @@ class Tournament(TournamentBase):
         return True
 
     def mod_create_pairing(self) -> None:
+        if not all(m.is_finished() for m in self.get_current_matches()):
+            return None
+
         self._round_start_times.append(now_Berlin())
         if self.get_round() == 0:
             players = self.get_active_players(include_bye=True)

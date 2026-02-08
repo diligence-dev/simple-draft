@@ -63,27 +63,6 @@ class TournamentOdd(TournamentBase):
             assert m2.p2 == player2
             m2.p2 = player1
 
-    def mod_submit_result(
-        self, p1: Player, p2: Player, p1_games_won: int, p2_games_won: int
-    ) -> bool:
-        if (p1, p2) not in self.get_pairing():
-            warn(f"{p1} vs {p2} not in pairing")
-            return False
-        if p1_games_won not in (0, 1, 2) or p2_games_won not in (0, 1, 2):
-            warn("games won not in (0, 1, 2)")
-            return False
-        elif p1_games_won + p2_games_won > 3:
-            warn("total games > 3")
-            return False
-
-        for m in self.get_current_matches():
-            if m.p1 == p1 and m.p2 == p2:
-                m.mod_finish(p1_games_won, p2_games_won)
-                break
-
-        self.mod_create_pairing()
-        return True
-
     def mod_create_pairing(self) -> None:
         if len(self._round_results[0]) == 0:
             players = self.get_active_players()

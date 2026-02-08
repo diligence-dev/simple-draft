@@ -214,7 +214,6 @@ class TournamentBase:
 
         return True
 
-
     def mod_add_player(self, player_to_add: str) -> str:
         player_to_add = player_to_add.replace("/", "|")
         player_to_add = player_to_add.replace("?", "")
@@ -271,80 +270,10 @@ class TournamentBase:
             warn("total games > 3")
             return False
 
-        for m in self._round_results[-1]:
+        for m in self.get_current_matches():
             if m.p1 == p1 and m.p2 == p2:
                 m.mod_finish(p1_games_won, p2_games_won)
                 break
 
-        if all(match.is_finished() for match in self.get_current_matches()):
-            self.mod_create_pairing()
-            return True
-
+        self.mod_create_pairing()
         return True
-
-    def mod_create_pairing(self) -> None:
-        self._round_start_times.append(now_Berlin())
-        if self.get_round() == 0:
-            players = self.get_active_players(include_bye=True)
-            if len(players) % 2 == 1:
-                players.remove("bye")
-
-            n_halved = int(len(players) / 2)
-            self._round_results.append(
-                [
-                    pair_and_result(players[i], players[i + n_halved])
-                    for i in range(n_halved)
-                ]
-            )
-            return None
-
-        # Swiss pairing using maximum weight matching
-        standings = self.get_standings(include_bye=True)
-        active_players = self.get_active_players(include_bye=True)
-        if len(active_players) % 2 == 1:
-            active_players.remove("bye")
-        # get players in standings order
-        players = [p.name for p in standings if p.name in active_players]
-        pairing_history = {
-            frozenset({match.p1, match.p2})
-            for round_results in self._round_results
-            for match in round_results
-        }
-
-        G = nx.Graph()
-        G.add_nodes_from(players)
-
-        # Add edges with weights based on points
-        for i, p1 in enumerate(players):
-            for p2 in players[i + 1 :]:
-                if frozenset({p1, p2}) not in pairing_history:
-                    score_diff = abs(
-                        standings[i].points - standings[players.index(p2)].points
-                    )
-                    score_sum = (
-                        standings[i].points + standings[players.index(p2)].points
-                    )
-                    G.add_edge(p1, p2, weight=-(score_diff**2 * score_sum))
-
-        pairings: list[Pair] = list(nx.max_weight_matching(G, maxcardinality=True))
-
-        # Add current pairings to x
-        self._round_results.append([pair_and_result(p1, p2) for p1, p2 in pairings])
-
-    def mod_replace_pairing(self, new_player: str = "") -> None:
-        if new_player != "" and len(self.get_active_players(include_bye=True)) % 2 == 1:
-            # new player replaces bye
-            def replace_bye(m: Match) -> Match:
-                if m.p1 == "bye":
-                    return Match(new_player, m.p2, -1, -1)
-                elif m.p2 == "bye":
-                    return Match(m.p1, new_player, -1, -1)
-                return m
-
-            self._round_results[-1] = [
-                replace_bye(match) for match in self._round_results[-1]
-            ]
-
-        if self.get_round() >= 1:
-            self._round_results.pop()
-        return self.mod_create_pairing()
