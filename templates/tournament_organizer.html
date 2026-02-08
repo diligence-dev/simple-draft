@@ -137,9 +137,6 @@
             <input type="text" name="player2" id="player2" required>
             <button type="submit">Swap Players</button>
         </form>
-        <form method="POST" action="/{{ event_id }}/shuffle_seatings" class="form-group">
-            <button type="submit">Shuffle Seatings</button>
-        </form>
         <form method="POST" action="/{{ event_id }}/load_state" class="form-group">
             <label for="filename">Load State from File (file path on server):</label>
             <input type="text" name="filename" id="filename" required>

@@ -42,29 +42,6 @@ class TournamentOdd(TournamentBase):
             >= len(self.get_active_players()) * 3 - 1
         )
 
-    # def mod_shuffle_seatings(self) -> bool:
-    #     self._players = sample(self._players, len(self._players))
-    #     self.mod_replace_pairing()
-    #     return True
-
-    # def mod_add_player(self, player_to_add: str) -> str:
-    #     player_to_add = player_to_add.replace("/", "|")
-    #     player_to_add = player_to_add.replace("?", "")
-    #     player_to_add = player_to_add.replace("%", "")
-    #     player_to_add = player_to_add.strip()
-    #     if player_to_add in self.get_active_players() or player_to_add == "bye":
-    #         return ""
-
-    #     if player_to_add in self._dropped_players:
-    #         assert player_to_add in self._players
-    #         self._dropped_players.remove(player_to_add)
-    #     else:
-    #         self._players.append(player_to_add)
-
-    #     self.mod_replace_pairing(new_player=player_to_add)
-
-    #     return player_to_add
-
     # def mod_drop_player(self, player_to_drop: Player) -> bool:
     #     if player_to_drop not in self._players:
     #         return False

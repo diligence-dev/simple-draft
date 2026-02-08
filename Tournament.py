@@ -52,36 +52,6 @@ class Tournament(TournamentBase):
 
         return True
 
-    def mod_shuffle_seatings(self) -> bool:
-        if self.get_round() >= 2:
-            warn("won't shuffle seatings after round 1")
-            return False
-
-        self._players = sample(self._players, len(self._players))
-        self.mod_replace_pairing()
-        return True
-
-    def mod_add_player(self, player_to_add: str) -> str:
-        player_to_add = player_to_add.replace("/", "|")
-        player_to_add = player_to_add.replace("?", "")
-        player_to_add = player_to_add.replace("%", "")
-        player_to_add = player_to_add.strip()
-        if player_to_add in self.get_active_players() or player_to_add == "bye":
-            return ""
-
-        if player_to_add in self._dropped_players:
-            assert player_to_add in self._players
-            self._dropped_players.remove(player_to_add)
-        else:
-            self._players.append(player_to_add)
-
-        if self.get_round() <= 1:
-            self.mod_shuffle_seatings()
-
-        self.mod_replace_pairing(new_player=player_to_add)
-
-        return player_to_add
-
     def mod_drop_player(self, player_to_drop: Player) -> bool:
         if player_to_drop not in self._players or player_to_drop == "bye":
             return False

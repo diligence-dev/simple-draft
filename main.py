@@ -98,14 +98,6 @@ def qr(event_id):
     return redirect(url_for("tournament_organizer", event_id=event_id))
 
 
-@app.route("/<int:event_id>/shuffle_seatings", methods=["POST"])
-def shuffle_seatings(event_id):
-    save_state(event_id)
-    id2t(event_id).mod_shuffle_seatings()
-    save_global_state()
-    return redirect(url_for("tournament_organizer", event_id=event_id))
-
-
 @app.route("/<int:event_id>/submit_results", methods=["POST"])
 def submit_results(event_id):
     save_state(event_id)
