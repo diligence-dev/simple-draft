@@ -4,7 +4,6 @@ from random import sample
 from statistics import mean
 from warnings import warn
 from zoneinfo import ZoneInfo
-import networkx as nx  # type: ignore
 
 Player = str
 Pair = tuple[Player, Player]
@@ -46,8 +45,7 @@ class Match:
 
     def mod_finish(self, p1_games_won: int, p2_games_won: int) -> bool:
         if (
-            not self.is_finished()
-            and 0 <= p1_games_won + p2_games_won <= 3
+            0 <= p1_games_won + p2_games_won <= 3
             and p1_games_won >= 0
             and p2_games_won >= 0
         ):
