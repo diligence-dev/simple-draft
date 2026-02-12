@@ -3,7 +3,9 @@ from datetime import datetime
 from warnings import warn
 from now_Berlin import now_Berlin
 
+
 Player = str
+Pair = tuple[Player, Player]
 
 
 @dataclass

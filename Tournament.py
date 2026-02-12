@@ -2,13 +2,9 @@ from datetime import datetime
 from warnings import warn
 import networkx as nx  # type: ignore
 
-from Match import Match
+from Match import Match, Pair, Player
 from now_Berlin import now_Berlin
-from TournamentBase import (
-    Player,
-    Pair,
-    TournamentBase,
-)
+from TournamentBase import TournamentBase
 
 
 class Tournament(TournamentBase):

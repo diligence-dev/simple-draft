@@ -2,10 +2,7 @@ from dataclasses import dataclass
 from random import sample
 from statistics import mean
 from warnings import warn
-from Match import Match
-
-Player = str
-Pair = tuple[Player, Player]
+from Match import Match, Player, Pair
 
 
 def find_opponents(matches: list[list[Match]], player: Player) -> list[Player]:

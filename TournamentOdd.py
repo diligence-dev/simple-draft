@@ -1,11 +1,7 @@
 import networkx as nx  # type: ignore
 
-from Match import Match
-from TournamentBase import (
-    Pair,
-    Player,
-    TournamentBase,
-)
+from Match import Match, Pair, Player
+from TournamentBase import TournamentBase
 
 
 class TournamentOdd(TournamentBase):
