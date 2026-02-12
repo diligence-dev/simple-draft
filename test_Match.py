@@ -1,8 +1,10 @@
 import unittest
+
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from TournamentBase import Match, set_now_Berlin_forced
+from Match import Match
+from now_Berlin import set_now_Berlin_forced
 
 
 class TestMatchInit(unittest.TestCase):

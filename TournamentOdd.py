@@ -1,10 +1,9 @@
-from random import sample
-from warnings import warn
 import networkx as nx  # type: ignore
+
+from Match import Match
 from TournamentBase import (
-    Player,
     Pair,
-    Match,
+    Player,
     TournamentBase,
 )
 
@@ -68,8 +67,7 @@ class TournamentOdd(TournamentBase):
 
             n_halved = int(len(players) / 2)
             self._round_results[0] = [
-                Match(players[i], players[i + n_halved])
-                for i in range(n_halved)
+                Match(players[i], players[i + n_halved]) for i in range(n_halved)
             ]
 
             return None

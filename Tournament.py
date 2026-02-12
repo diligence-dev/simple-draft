@@ -1,13 +1,12 @@
 from datetime import datetime
-from random import sample
-from statistics import mean
 from warnings import warn
 import networkx as nx  # type: ignore
+
+from Match import Match
+from now_Berlin import now_Berlin
 from TournamentBase import (
     Player,
     Pair,
-    now_Berlin,
-    Match,
     TournamentBase,
 )
 
@@ -101,10 +100,7 @@ class Tournament(TournamentBase):
 
             n_halved = int(len(players) / 2)
             self._round_results.append(
-                [
-                    Match(players[i], players[i + n_halved])
-                    for i in range(n_halved)
-                ]
+                [Match(players[i], players[i + n_halved]) for i in range(n_halved)]
             )
             return None
 

@@ -1,8 +1,9 @@
-from statistics import mean
-from Tournament import Tournament
-from TournamentBase import set_now_Berlin_forced
 from datetime import timedelta
 from random import normalvariate, randint
+from statistics import mean
+
+from now_Berlin import set_now_Berlin_forced
+from Tournament import Tournament
 
 
 def roll(a, b):
