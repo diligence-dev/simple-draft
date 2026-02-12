@@ -43,6 +43,15 @@ class Match:
         self.t_start = now_Berlin() if t_start is None else t_start
         self.t_end = t_end
 
+        if self.includes("bye") and (p1_games_won != -1 or p2_games_won != -1):
+            warn("Tried to create Match with bye and result; result replaced with 2-0")
+
+        if p1 == "bye":
+            self.mod_finish(0, 2)
+        elif p2 == "bye":
+            self.mod_finish(2, 0)
+
+
     def mod_finish(self, p1_games_won: int, p2_games_won: int) -> bool:
         if (
             0 <= p1_games_won + p2_games_won <= 3
@@ -81,15 +90,6 @@ class Match:
         yield self.p1_games_won
         yield self.p2_games_won
 
-
-def pair_and_result(p1: str, p2: str) -> Match:
-    now = now_Berlin()
-    if p1 == "bye":
-        return Match(p1, p2, 0, 2, t_start=now, t_end=now)
-    elif p2 == "bye":
-        return Match(p1, p2, 2, 0, t_start=now, t_end=now)
-    else:
-        return Match(p1, p2, -1, -1)
 
 
 def find_opponents(matches: list[list[Match]], player: Player) -> list[Player]:

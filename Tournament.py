@@ -8,7 +8,6 @@ from TournamentBase import (
     Pair,
     now_Berlin,
     Match,
-    pair_and_result,
     TournamentBase,
 )
 
@@ -103,7 +102,7 @@ class Tournament(TournamentBase):
             n_halved = int(len(players) / 2)
             self._round_results.append(
                 [
-                    pair_and_result(players[i], players[i + n_halved])
+                    Match(players[i], players[i + n_halved])
                     for i in range(n_halved)
                 ]
             )
@@ -140,7 +139,7 @@ class Tournament(TournamentBase):
         pairings: list[Pair] = list(nx.max_weight_matching(G, maxcardinality=True))
 
         # Add current pairings to x
-        self._round_results.append([pair_and_result(p1, p2) for p1, p2 in pairings])
+        self._round_results.append([Match(p1, p2) for p1, p2 in pairings])
 
     def mod_replace_pairing(self, new_player: str = "") -> None:
         if new_player != "" and len(self.get_active_players(include_bye=True)) % 2 == 1:
