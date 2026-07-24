@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+__pycache__
+.pytest_cache
+.mypy_cache
+*.pickle
+pickles/
+fly.toml
+Dockerfile
+.dockerignore
+README.md

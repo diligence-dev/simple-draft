@@ -6,11 +6,16 @@ import networkx as nx
 import copy
 import pickle
 import datetime
+import os
 import time
 from warnings import warn
 from zoneinfo import ZoneInfo
 
-port = 5000
+DATA_DIR = os.environ.get("DATA_DIR", ".")
+PICKLES_DIR = os.path.join(DATA_DIR, "pickles")
+os.makedirs(PICKLES_DIR, exist_ok=True)
+
+port = int(os.environ.get("PORT", 5000))
 
 app = Flask(__name__)
 
@@ -322,7 +327,9 @@ def empty_event():
     return {"x": Tournament([]), "previous_states": []}
 
 
-global_state_file = f"{datetime.date.today().isoformat()}_events.pickle"
+global_state_file = os.path.join(
+    DATA_DIR, f"{datetime.date.today().isoformat()}_events.pickle"
+)
 
 try:
     with open(global_state_file, "rb") as f:
@@ -342,7 +349,7 @@ def id2t(event_id):
 
 
 # for QR code
-url = "https://chillturtle.pythonanywhere.com"
+url = os.environ.get("APP_URL", "https://simple-draft.fly.dev")
 
 
 def save_state(event_id):
@@ -357,7 +364,7 @@ def save_global_state():
 
 
 def write_state_to_file(event_id):
-    with open(f"pickles/{now_Berlin().isoformat()}_{event_id}.pickle", "wb") as f:
+    with open(os.path.join(PICKLES_DIR, f"{now_Berlin().isoformat()}_{event_id}.pickle"), "wb") as f:
         pickle.dump(events[event_id]["x"], f)
 
 
@@ -589,4 +596,4 @@ def standings(event_id):
 
 
 if __name__ == "__main__":
-    app.run(host="localhost", port=port)
+    app.run(host="0.0.0.0", port=port)
